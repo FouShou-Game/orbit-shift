@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbit Shift · Duel Prototype</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #010103;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100dvh;
+            overflow: auto;
+            user-select: none;
+        }
+        canvas {
+            width: min(700px, 96vw, calc(100dvh - 150px));
+            height: auto;
+            touch-action: manipulation;
+            box-shadow: 0 0 70px rgba(0, 243, 255, 0.25);
+            border-radius: 20px;
+            cursor: pointer;
+            background: radial-gradient(circle, #0b0b26 0%, #010103 100%);
+        }
+        .instructions {
+            margin-top: 15px;
+            font-size: 13px;
+            color: #93a8c5;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+    button {background:#0c2031;color:#adfaff;border:1px solid #235168;border-radius:10px;padding:11px 16px;cursor:pointer;font:inherit;touch-action:manipulation} button:hover{background:#184057} button:focus-visible{outline:2px solid #fff} .controls{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:12px 8px} .instructions{max-width:680px;line-height:1.7;letter-spacing:0;margin:8px 12px} 
+        body {box-sizing:border-box;padding:12px;justify-content:flex-start;gap:8px;background:radial-gradient(ellipse at top,#0a1822,#010103 65%)}
+        canvas {width:min(700px,96vw,calc(100dvh - 140px));box-shadow:0 0 35px #00cbd514;border:1px solid #162c36;border-radius:14px}
+        .controls{margin:0;gap:6px;align-items:center;max-width:700px}
+        button{padding:6px 10px;border-radius:6px;background:#091319;border-color:#24343d;font-size:12px;color:#aac2cc}
+        button:disabled{opacity:.35;cursor:default}
+        .controls [data-lane]{display:none}
+        .instructions{font-size:11px;margin:0;color:#657e8c;text-transform:none;max-width:680px}
+        details{width:min(700px,96vw);font-size:12px;color:#9ab3bf;text-align:center}
+        summary{cursor:pointer;list-style:none;color:#6e8b99;font-size:11px;padding:3px}
+        .helpcontent{background:#091117;border:1px solid #20323c;border-radius:8px;padding:12px;line-height:1.8;margin-top:6px}
+        @media(pointer:coarse){.controls [data-lane]{display:inline-block}button{min-height:36px}.controls{flex-wrap:wrap}canvas{width:min(700px,94vw,calc(100dvh - 160px))}}
+        @media(max-height:500px){body{overflow:auto}canvas{width:min(70vw,400px)}}
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas" width="700" height="700"></canvas>
+    <div class="controls"><button id="reverse">Play / ↔</button><button data-lane="0">1 · Inner</button><button data-lane="1">2 · Mid</button><button data-lane="2">3 · Outer</button><button id="strike" disabled>Riposte · E</button><button id="pause">Pause · P</button></div>
+    <div class="instructions">↑ W outward &nbsp; · &nbsp; ↓ S inward &nbsp; · &nbsp; SPACE reverse &nbsp; · &nbsp; E riposte</div>
+    <details><summary>Controls & rules ▾</summary><div class="helpcontent">
+        ↑ / W moves outward one lane; ↓ / S moves inward one lane. No wrapping at the edges. 1 / 2 / 3 still select lanes directly.<br>
+        Switch lanes just before a round bullet hits to trigger Perfect Dodge. Its 0.15s window has a 1.25s cooldown.<br>
+        A successful dodge slows enemies for 0.6s; you keep moving normally. Skim bullets with your outer ring to graze.<br>
+        Red striped fields are unblockable. Projectile rounds leave every lane available; field rounds have no extra bullets.<br>
+        Two moves: Pursuit Cut chases along one locked lane; Returning Spears cross all lanes and come back along their marked paths. Press E while the core is gold. Perfect Dodge creates an immediate opening, even before a move finishes.<br>
+        3 lives · 2.5s recovery after damage · P pauses · Click Play or the arena to begin.
+    </div></details>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let audioContext = null, audioBus = null, muted = false;
+        let bossFlash = 0, victoryAge = 0;
+        const soundButton = document.createElement('button');
+        soundButton.textContent = 'Sound: On'; soundButton.setAttribute('aria-pressed','false');
+        document.querySelector('.controls').appendChild(soundButton);
+        async function unlockAudio() {
+            try {
+                if (!audioContext) {
+                    const Audio = window.AudioContext || window.webkitAudioContext;
+                    if (!Audio) { soundButton.textContent='Audio unavailable'; return; }
+                    audioContext = new Audio(); audioBus = audioContext.createGain();
+                    audioBus.gain.value = muted ? 0 : .3; audioBus.connect(audioContext.destination);
+                }
+                if (audioContext.state !== 'running') await audioContext.resume();
+            } catch { soundButton.textContent='Audio blocked · Retry'; }
+        }
+        soundButton.onclick = () => {
+            muted=!muted; unlockAudio();
+            if(audioBus) audioBus.gain.value=muted?0:.3;
+            soundButton.textContent=muted?'Sound: Off':'Sound: On';
+            soundButton.setAttribute('aria-pressed',String(muted));
+            if(!muted) sound('hit');
+        };
+        const testSoundButton=document.createElement('button');
+        testSoundButton.textContent='Test hit sound';
+        document.querySelector('.helpcontent').appendChild(testSoundButton);
+        testSoundButton.onclick=async()=>{
+            muted=false; soundButton.textContent='Sound: On'; soundButton.setAttribute('aria-pressed','false');
+            await unlockAudio(); if(audioBus)audioBus.gain.value=.3;
+            await sound('hit');
+            testSoundButton.textContent=audioContext?.state==='running'?'Replay hit sound':'Audio blocked · Retry';
+        };
+        document.addEventListener('pointerdown',unlockAudio);
+        document.addEventListener('keydown',unlockAudio);
+        async function sound(kind) {
+            if(muted) return;
+            await unlockAudio();
+            if (!audioContext || muted || audioContext.state !== 'running') return;
+            const notes = {graze:[1100],perfect:[660,990,1320],reverse:[420,300],lane:[540,720],hit:[480,230],strike:[220,880],open:[440,660,880],win:[392,494,587,784],lose:[220,165,110],start:[330,440]};
+            try { (notes[kind] || [440]).forEach((frequency,i)=>{
+                const osc=audioContext.createOscillator(), gain=audioContext.createGain();
+                const at=audioContext.currentTime+i*.09;
+                osc.type=kind==='hit'?'square':'sine';osc.frequency.value=frequency;
+                if(kind==='hit')osc.frequency.exponentialRampToValueAtTime(frequency*.45,at+.18);
+                gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(.45,at+.008);
+                gain.gain.exponentialRampToValueAtTime(.001,at+.18);
+                osc.connect(gain);gain.connect(audioBus);osc.start(at);osc.stop(at+.2);
+                osc.onended=()=>{osc.disconnect();gain.disconnect();};
+            }); } catch {}
+        }
+
+        // Game State
+        let isPlaying = false;
+        let score = 0;
+        let highScore = 0;
+        try { highScore = Number(localStorage.getItem('orbitSentinelDuelHighScore')) || 0; } catch {}
+        let paused = false;
+        let restartAllowedAt = 0;
+        let lives = 3, invulnerable = 0, bossHP = 6, won = false;
+        let phase = 'attack', phaseClock = 0, round = 0;
+        let duelTick=0, riposte=0, strikeCooldown=0, hitStop=0, duelMove=0;
+        const duelPatterns=[
+            {name:'PURSUIT CUT',kind:'pursuit',times:[45],open:165,end:255,warning:48,size:12,turn:.012},
+            {name:'RETURNING SPEARS',kind:'return',times:[45],open:275,end:365,warning:42,size:8}
+        ];
+        function currentDuel(){return duelPatterns[duelMove%duelPatterns.length];}
+        function duelCue(){
+            if(riposte>0)return 'OPEN · E TO RIPOSTE';
+            if(duelTick<0)return 'READY · GET YOUR BEARINGS';
+            const move=currentDuel();
+            const count=move.times.filter(t=>duelTick>=t).length;
+            if(duelTick>=move.open)return 'RESET YOUR POSITION';
+            if(move.kind==='return' && count>0)return obstacles.some(o=>o.returning)?'RETURNING SPEARS · WATCH THE RETURN':'RETURNING SPEARS · NOT OVER YET';
+            return move.name+' · '+(count===0?'READ THE WINDUP':count+' / '+move.times.length);
+        }
+        let dashFrames=0, dashCooldown=0, dashOrigin=85, dashUsed=false;
+        let bulletTime=0, bulletCooldown=0, grazeFlash=0, beamFlash=0;
+        let charge=0, volleyPower=0, weakLane=0, roundHits=0;
+        let stats={hits:0,grazes:0,dodges:0,clean:0}, record=null, resultLines=[];
+        try { record=JSON.parse(localStorage.getItem('sentinelDuelMovesRecords') || 'null'); } catch {}
+        function armDodge() {
+            if(phase!=='attack' || dashCooldown>0 || invulnerable>0) return;
+            dashFrames=9;dashCooldown=75;dashOrigin=currentRadius;dashUsed=false;
+        }
+        function perfectDodge(obs) {
+            obs.dodged=true;
+            if(dashUsed) return;
+            dashUsed=true;stats.dodges++;riposte=Math.max(riposte,54);charge=Math.min(100,charge+25);grazeFlash=24;
+            if(bulletCooldown===0) {bulletTime=36;bulletCooldown=150;}
+            sound('perfect');addFloatText('PERFECT DODGE +25',350,250,'#b4ffff');
+            spawnBurst(currentRadius,'#ffffff');
+        }
+        function saveResult(victory) {
+            const seconds=Math.round(frameCount/6)/10;
+            const previous=record;
+            resultLines=[seconds.toFixed(1)+'s · '+stats.hits+' hits · '+stats.clean+' clean rounds',stats.grazes+' grazes · '+stats.dodges+' perfect dodges'];
+            if(victory) {
+                resultLines.push(!previous?'FIRST CLEAR':stats.hits===0?'NO-HIT CLEAR':seconds<previous.time?'NEW FASTEST CLEAR':'SENTINEL CLEARED');
+                if(previous)resultLines.push('Previous best: '+previous.time.toFixed(1)+'s / '+previous.hits+' hits');
+                record={time:Math.min(previous?.time??Infinity,seconds),hits:Math.min(previous?.hits??Infinity,stats.hits)};
+                try{localStorage.setItem('sentinelDuelMovesRecords',JSON.stringify(record));}catch{}
+            } else if(previous)resultLines.push('Best clear: '+previous.time.toFixed(1)+'s / '+previous.hits+' hits');
+        }
+        const attackNames = ['CROSSING ORBS', 'SPIRAL RAIN', 'BOOMERANGS', 'BROKEN HALO', 'CORE BLOOM', 'SHIFTING PINCER'];
+        const attackOrder=[0,1,4,2,5,3];
+        let battleStage=1, comboSegment=-1;
+        function baseAttackKind(){return attackOrder[round % attackOrder.length];}
+        function comboCount(){return baseAttackKind()<4?battleStage:1;}
+        function attackKind(){
+            const base=baseAttackKind();
+            if(base>=4 || battleStage===1)return base;
+            return (base+Math.min(battleStage-1,Math.floor(phaseClock/300)))%4;
+        }
+        // These are visible areas of attack, using the same geometry for drawing and damage.
+        function attackFields() {
+            return [];
+            const kind = attackKind();
+            if(kind<4) return [];
+            const field = (inner, outer, start, end, hint) => ({inner, outer, start, end, hint,
+                active: phaseClock >= start && phaseClock < end,
+                visible: phaseClock >= start - 120 && phaseClock < end});
+            if (kind === 4) return [field(60,150,120,390,'CORE BLOOM · MOVE OUTWARD')];
+            return [field(60,107,120,240,'PINCER · SLIP INTO THE MIDDLE'),
+                field(153,200,120,240,'PINCER · SLIP INTO THE MIDDLE'),
+                field(60,150,360,450,'PINCER SHIFT · MOVE OUTWARD')];
+        }
+        function fieldHits(field, radius, a) {
+            const opening = round * 1.7 + phaseClock * .008;
+            const difference = Math.atan2(Math.sin(a-opening), Math.cos(a-opening));
+            return field.active && radius + 9 > field.inner && radius - 9 < field.outer && Math.abs(difference) > .48;
+        }
+        document.getElementById('strike').onclick = strikeBoss;
+        function finishBattle(victory) {
+            saveResult(victory); bulletTime=0; sound(victory?'win':'lose'); victoryAge=0;
+            if(victory) {
+                obstacles=[]; pendingWaves=[];
+                for(let i=0;i<64;i++) {
+                    const a=i*Math.PI*2/64, velocity=1.5+Math.random()*3;
+                    particles.push({x:350,y:350,vx:Math.cos(a)*velocity,vy:Math.sin(a)*velocity,life:130,color:i%2?'#ffdd88':'#8affdf'});
+                }
+            }
+            won = victory; isPlaying = false; restartAllowedAt = performance.now() + 3000;
+            document.getElementById('strike').disabled = true;
+            if (score > highScore) { highScore = score; try {localStorage.setItem('orbitSentinelDuelHighScore',highScore);} catch {} }
+        }
+        function strikeBoss() {
+            if(!isPlaying || paused || phase!=='attack' || strikeCooldown>0)return;
+            if(riposte<=0){strikeCooldown=12;addFloatText('WAIT FOR THE OPENING',350,280,'#97aabb');return;}
+            const empowered=bulletTime>0;
+            bossHP=Math.max(0,bossHP-(empowered?.75:.5));riposte=0;strikeCooldown=24;
+            charge=0;beamFlash=14;bossFlash=18;hitStop=6;score+=empowered?150:100;
+            sound('strike');triggerShake(10);addFloatText(empowered?'PERFECT RIPOSTE!':'COUNTER HIT!',350,285,'#ffdd88');
+            if(bossHP<=0){phase='finisher';phaseClock=0;}
+        }
+        function updateBattle(timeScale) {
+            if(phase==='finisher'){phaseClock++;if(phaseClock>=60)finishBattle(true);return;}
+            const previous=duelTick;duelTick+=timeScale;phaseClock=duelTick;
+            if(riposte>0)riposte--;
+            if(strikeCooldown>0)strikeCooldown--;
+            const move=currentDuel();
+            const attack=()=>{
+                const r=tracks[rewardLane()];
+                // Retire the previous cut; never spawn the next one on top of a lingering orb.
+                obstacles=[];
+                if(move.kind==='pursuit') {
+                    obstacles.push({orbital:true,pursuit:true,angle:angle+direction*2.8,distance:r,speed:0,size:move.size,type:0,
+                        angularSpeed:-direction*move.turn,warning:move.warning,life:80});
+                } else {
+                    // Fixed spokes cross every lane, turn near the core and retrace their route.
+                    // Their aim is locked at windup; they never track the player after launch.
+                    const aim=angle+direction*3.3;
+                    for(const offset of [-.38,0,.38]) obstacles.push({boomerang:true,angle:aim+offset,distance:290,speed:3,
+                        size:8,type:0,warning:move.warning});
+                }
+                sound('lane');
+            };
+            for(const at of move.times)if(previous<at && duelTick>=at)attack();
+            if(previous<move.open && duelTick>=move.open){obstacles=[];riposte=Math.max(riposte,48);sound('open');}
+            if(duelTick>=move.end){duelTick=0;phaseClock=0;obstacles=[];duelMove++;round=0;}
+        }
+        let spawnClock = 0;
+        let encounterClock = 0, encounterNumber = 0, pendingWaves = [];
+        const laneRewards = [1, 2, 3];
+        // Pay for the lane actually reached, not the requested destination.
+        function rewardLane() { return tracks.reduce((best, r, i) => Math.abs(currentRadius-r) < Math.abs(currentRadius-tracks[best]) ? i : best, 0); }
+        let powerClock = 0;
+        function togglePause() { if (!isPlaying) return; paused = !paused; document.getElementById('pause').textContent = paused ? 'Resume P' : 'Pause P'; }
+        document.getElementById('pause').onclick = togglePause;
+        document.getElementById('reverse').onclick = handleReverseAction;
+        document.querySelectorAll('[data-lane]').forEach(b => b.onclick = () => setTrack(Number(b.dataset.lane)));
+        document.addEventListener('visibilitychange', () => { if (document.hidden && isPlaying && !paused) togglePause(); });
+        let multiplier = 1;
+        let comboTimer = 0;
+        let singularityEnergy = 0;
+        let isSingularityActive = false;
+        let singularityTimer = 0;
+        let chronoSlowTimer = 0;
+
+        let angle = 0;
+        let speed = 0.035; 
+        let direction = 1; 
+        
+        // Track Management (0 = Inner (1), 1 = Mid (2), 2 = Outer (3))
+        let currentTrack = 0;
+        const tracks = [85, 130, 175]; 
+        let targetRadius = tracks[0];
+        let currentRadius = tracks[0];
+
+        let obstacles = [];
+        let particles = [];
+        let powerUps = [];
+        let floatTexts = [];
+        let stars = [];
+        let frameCount = 0;
+        
+        let hasShield = false;
+        let shakeFrames = 0;
+
+        const center = {
+            x: canvas.width / 2,
+            y: canvas.height / 2
+        };
+
+        // Starfield generation with parallax depth
+        for(let i = 0; i < 120; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 2.5,
+                alpha: Math.random() * 0.7 + 0.1,
+                speed: Math.random() * 0.15 + 0.02
+            });
+        }
+
+        // Input Listeners
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat || (e.target.tagName === 'BUTTON' && e.code === 'Space')) return;
+            if (e.code === 'KeyE') { e.preventDefault(); strikeBoss(); return; }
+            if (e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); stepTrack(1); return; }
+            if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); stepTrack(-1); return; }
+            if (e.code === 'KeyP' || e.code === 'Escape') { e.preventDefault(); togglePause(); return; }
+            if (e.code === 'Space') {
+                e.preventDefault();
+                handleReverseAction();
+            } else if (e.code === 'Digit1' || e.code === 'Numpad1') {
+                e.preventDefault();
+                setTrack(0);
+            } else if (e.code === 'Digit2' || e.code === 'Numpad2') {
+                e.preventDefault();
+                setTrack(1);
+            } else if (e.code === 'Digit3' || e.code === 'Numpad3') {
+                e.preventDefault();
+                setTrack(2);
+            } else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+                e.preventDefault();
+                cycleTrack();
+            }
+        });
+
+        canvas.addEventListener('click', handleReverseAction);
+
+        function handleReverseAction() {
+            if (paused) return;
+            if (!isPlaying) {
+                startGame();
+            } else {
+                direction *= -1; 
+                sound('reverse');
+                spawnBurst(currentRadius, isSingularityActive ? '#ff00ff' : '#00f3ff');
+            }
+        }
+
+        function setTrack(trackIndex) {
+            if (!isPlaying || paused) return;
+            if (currentTrack !== trackIndex) {
+                armDodge();
+                sound('lane');
+                currentTrack = trackIndex;
+                targetRadius = tracks[currentTrack];
+                spawnBurst(targetRadius, '#00ffcc');
+                addFloatText(`LANE ${currentTrack + 1}`, center.x + Math.cos(angle) * currentRadius, center.y + Math.sin(angle) * currentRadius, "#00ffcc");
+            }
+        }
+
+        function cycleTrack() { setTrack((currentTrack+1)%tracks.length); }
+        function stepTrack(delta) {
+            setTrack(Math.max(0, Math.min(tracks.length-1, currentTrack+delta)));
+        }
+
+        function spawnBurst(r, color) {
+            for (let i = 0; i < 8; i++) {
+                let pAngle = angle + (Math.random() - 0.5) * 1.5;
+                particles.push({
+                    x: center.x + Math.cos(angle) * r,
+                    y: center.y + Math.sin(angle) * r,
+                    vx: Math.cos(pAngle) * (Math.random() * 4 + 1),
+                    vy: Math.sin(pAngle) * (Math.random() * 4 + 1),
+                    life: 22,
+                    color: color
+                });
+            }
+        }
+
+        function startGame() {
+            if (performance.now() < restartAllowedAt) return;
+            unlockAudio(); sound('start'); bossFlash=0; victoryAge=0;
+            restartAllowedAt = 0;
+            duelTick=-90;riposte=0;strikeCooldown=0;hitStop=0;duelMove=0;
+            dashFrames=0;dashCooldown=0;dashUsed=false;bulletTime=0;bulletCooldown=0;
+            grazeFlash=0;beamFlash=0;charge=0;volleyPower=0;roundHits=0;resultLines=[];
+            stats={hits:0,grazes:0,dodges:0,clean:0};
+            lives=3; invulnerable=0; bossHP=6; won=false; phase='attack'; phaseClock=0; round=0;
+            battleStage=1;comboSegment=-1;
+            document.getElementById('strike').disabled=true;
+            isPlaying = true;
+            paused = false; spawnClock = 0; powerClock = 0;
+            encounterClock = 0; encounterNumber = 0; pendingWaves = [];
+            document.getElementById('pause').textContent = 'Pause P';
+            score = 0;
+            multiplier = 1;
+            comboTimer = 0;
+            singularityEnergy = 0;
+            isSingularityActive = false;
+            singularityTimer = 0;
+            chronoSlowTimer = 0;
+            obstacles = [];
+            particles = [];
+            powerUps = [];
+            floatTexts = [];
+            speed = 0.035;
+            direction = 1;
+            angle = 0;
+            frameCount = 0;
+            hasShield = false;
+            shakeFrames = 0;
+            currentTrack = 0;
+            targetRadius = tracks[0];
+            currentRadius = tracks[0];
+        }
+
+        function spawnObstacle() {
+            const spawnAngle = Math.random() * Math.PI * 2;
+            let typeRand = Math.random();
+            let type = typeRand < 0.55 ? 0 : (typeRand < 0.85 ? 1 : 2); 
+            let targetTrackIndex = Math.floor(Math.random() * tracks.length);
+            
+            obstacles.push({
+                angle: spawnAngle,
+                distance: 350, 
+                speed: (1.3 + Math.random() * 1.1),
+                size: 7 + Math.random() * 4,
+                type: type,
+                trackIndex: targetTrackIndex,
+                waveOffset: Math.random() * Math.PI
+            });
+        }
+
+        function spawnPowerUp() {
+            const spawnAngle = Math.random() * Math.PI * 2;
+            let isChrono = Math.random() > 0.5;
+            powerUps.push({
+                angle: spawnAngle,
+                distance: 350,
+                speed: 1.1,
+                size: 11,
+                trackIndex: Math.floor(Math.random() * tracks.length),
+                type: isChrono ? 'chrono' : 'shield'
+            });
+        }
+
+        function planEncounter() {
+            const base = Math.random() * Math.PI * 2;
+            const double = encounterNumber++ % 2 === 1;
+            const makeWave = (a, delay, label) => {
+                const angles = [];
+                // A broad fan with a generous central opening and open space behind it.
+                for (let i = -5; i <= 5; i++) if (Math.abs(i) > 1) angles.push(a + i * 0.23);
+                pendingWaves.push({ angles, gap: a, delay, label });
+            };
+            makeWave(base, 100, double ? 'DOUBLE WAVE · 1 / 2' : 'FAN WAVE · FIND THE GAP');
+            if (double) makeWave(base + 0.7, 170, 'DOUBLE WAVE · 2 / 2');
+        }
+
+        function updateEncounters(timeScale) {
+            encounterClock += timeScale;
+            // Let existing random traffic clear before each announced encounter.
+            if (encounterClock >= 720) {
+                encounterClock = 0;
+                planEncounter();
+            }
+            for (let i = pendingWaves.length - 1; i >= 0; i--) {
+                const wave = pendingWaves[i];
+                wave.delay -= timeScale;
+                if (wave.delay <= 0) {
+                    for (const a of wave.angles) obstacles.push({angle:a, distance:310, speed:1.8, size:8, type:2, waveOffset:0, formation:true});
+                    pendingWaves.splice(i, 1);
+                }
+            }
+        }
+
+        function addFloatText(text, x, y, color) {
+            floatTexts.push({ text, x, y, alpha: 1.0, color });
+        }
+
+        function triggerShake(frames) {
+            shakeFrames = frames;
+        }
+
+        function update() {
+            if (!isPlaying || paused) return;
+            if (phase==='finisher') { updateBattle(1); return; }
+            if(hitStop>0){hitStop--;return;}
+
+            if(phase!=='finisher')frameCount++;
+            if(dashCooldown>0)dashCooldown--;
+            if(bulletCooldown>0)bulletCooldown--;
+            if(bulletTime>0)bulletTime--;
+            if(grazeFlash>0)grazeFlash--;
+            if(beamFlash>0)beamFlash--;
+            if(audioBus&&!muted)audioBus.gain.value=bulletTime>0?.16:.3;
+            if (invulnerable > 0) invulnerable--;
+
+            currentRadius += (targetRadius - currentRadius) * 0.25;
+
+            if (isSingularityActive) {
+                singularityTimer--;
+                if (singularityTimer <= 0) {
+                    isSingularityActive = false;
+                    addFloatText("SINGULARITY ENDED", center.x, center.y - 75, "#ff00ff");
+                }
+            }
+
+            if (chronoSlowTimer > 0) {
+                chronoSlowTimer--;
+            }
+
+            if (comboTimer > 0) {
+                comboTimer--;
+                if (comboTimer === 0) multiplier = 1;
+            }
+
+            let laneBonus = laneRewards[rewardLane()];
+            let activeMultiplier = (isSingularityActive ? multiplier * 2 : multiplier) * laneBonus;
+            if (frameCount % 10 === 0) {
+                score += activeMultiplier;
+            }
+
+            // Difficulty follows survival time so high rewards do not punish risk taking.
+            let targetSpeed = 0.035 + Math.min(round * 0.002, 0.014);
+            let timeFactor = bulletTime>0 ? 0.3 : 1;
+            speed = targetSpeed;
+
+            angle += speed * direction;
+
+            updateBattle(timeFactor * (isSingularityActive ? 0.6 : 1));
+
+            let playerX = center.x + Math.cos(angle) * currentRadius;
+            let playerY = center.y + Math.sin(angle) * currentRadius;
+
+            if (invulnerable === 0 && attackFields().some(f => fieldHits(f, currentRadius, angle))) {
+                lives--; stats.hits++;roundHits++;dashFrames=0; invulnerable=150; triggerShake(18); sound('hit');
+                spawnBurst(currentRadius,'#ff5577');
+                addFloatText('HIT · RECOVERING',playerX,playerY-25,'#ff8899');
+                if (lives <= 0) { finishBattle(false); return; }
+            }
+
+            if (frameCount % 2 === 0) {
+                particles.push({
+                    x: playerX,
+                    y: playerY,
+                    vx: (Math.random() - 0.5) * 0.4,
+                    vy: (Math.random() - 0.5) * 0.4,
+                    life: 25,
+                    color: isSingularityActive ? '#ff00ff' : (hasShield ? '#00ff66' : '#00f3ff')
+                });
+            }
+
+            // Update Obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                const enemyStep = timeFactor;
+                if(obs.warning>0) {obs.warning-=enemyStep;continue;}
+                if(obs.spin)obs.angle+=obs.spin*enemyStep;
+                if(obs.boomerang && obs.distance<55 && !obs.returning){
+                    obs.speed=-Math.abs(obs.speed);obs.returning=true;sound('lane');
+                }
+                if(obs.returning && obs.distance>320){obstacles.splice(i,1);continue;}
+                if (obs.orbital) {
+                    const step = timeFactor * (isSingularityActive ? 0.6 : 1);
+                    obs.life -= step;
+                    if (obs.life <= 0) { obstacles.splice(i,1); continue; }
+                    if (obs.warning > 0) { obs.warning -= step; continue; }
+                    obs.angle += obs.angularSpeed * step;
+                }
+                obs.distance -= obs.speed * timeFactor * (isSingularityActive ? 0.6 : 1);
+
+                let currentAngle = obs.angle;
+                if (obs.type === 1) {
+                    currentAngle += Math.sin(frameCount * 0.12 + obs.waveOffset) * 0.2;
+                }
+
+                let obsTrackRadius = tracks[obs.trackIndex];
+                let obsX = center.x + Math.cos(currentAngle) * obs.distance;
+                let obsY = center.y + Math.sin(currentAngle) * obs.distance;
+
+                let onSameTrack = Math.abs(currentRadius - obsTrackRadius) < 18;
+                let distToPlayer = Math.hypot(playerX - obsX, playerY - obsY);
+
+                const originDistance=Math.hypot(center.x+Math.cos(angle)*dashOrigin-obsX,center.y+Math.sin(angle)*dashOrigin-obsY);
+                if(phase==='attack' && invulnerable===0 && dashFrames>0 && !obs.dodged &&
+                    (distToPlayer<9+obs.size || originDistance<9+obs.size)) perfectDodge(obs);
+                if(obs.dodged) { obstacles.splice(i,1); continue; }
+                if (phase === 'attack' && invulnerable === 0 && dashFrames===0 && !obs.dodged && distToPlayer < 9 + obs.size) {
+                    if (hasShield) {
+                        hasShield = false;
+                        triggerShake(12);
+                        addFloatText("SHIELD ABSORBED HIT", playerX, playerY - 20, "#ff0055");
+                        obstacles.splice(i, 1);
+                        continue;
+                    } else {
+                        lives--; stats.hits++;roundHits++;dashFrames=0; invulnerable=150; triggerShake(18); sound('hit');
+                        spawnBurst(currentRadius,'#ff5577');
+                        obstacles.splice(i,1);
+                        addFloatText(lives > 0 ? 'HIT · '+lives+' LIVES LEFT' : 'SIGNAL LOST',playerX,playerY-25,'#ff8899');
+                        if (lives <= 0) { finishBattle(false); return; }
+                        continue;
+                    }
+                }
+
+                if (phase==='attack' && invulnerable===0 && !obs.dodged && !obs.grazed && distToPlayer >= 9 + obs.size && distToPlayer < 34 + obs.size) {
+                    obs.grazed = true;
+                    score += 15 * activeMultiplier;
+                    charge=Math.min(100,charge+10);stats.grazes++;grazeFlash=15;sound('graze');
+                    for(let n=0;n<6;n++) particles.push({x:playerX+(obsX-playerX)*n/6,y:playerY+(obsY-playerY)*n/6,vx:0,vy:0,life:12,color:'#aaffef'});
+                    addFloatText('GRAZE +10 ENERGY', playerX, playerY - 24, '#ffdd88');
+                }
+                if (obs.distance < 12) {
+                    obstacles.splice(i, 1);
+                    multiplier = Math.min(multiplier + 1, 5);
+                    comboTimer = 85; 
+
+                    if (!isSingularityActive) {
+                        singularityEnergy = Math.min(100, singularityEnergy + 4);
+                        if (singularityEnergy >= 100) {
+                            singularityEnergy = 0;
+                            isSingularityActive = true;
+                            singularityTimer = 260; 
+                            triggerShake(18);
+                            addFloatText("SINGULARITY · DOUBLE SCORE", center.x, center.y - 75, "#ff00ff");
+                        }
+                    }
+                }
+            }
+
+            if(dashFrames>0)dashFrames--;
+            // Update Power-ups
+            for (let i = powerUps.length - 1; i >= 0; i--) {
+                let pu = powerUps[i];
+                pu.distance -= pu.speed * timeFactor * (isSingularityActive ? 0.6 : 1);
+
+                let puTrackRadius = tracks[pu.trackIndex];
+                let puX = center.x + Math.cos(pu.angle) * pu.distance;
+                let puY = center.y + Math.sin(pu.angle) * pu.distance;
+
+                if (Math.hypot(playerX - puX, playerY - puY) < 18) {
+                    if (pu.type === 'shield') {
+                        hasShield = true;
+                        addFloatText("SHIELD ONLINE", playerX, playerY - 20, "#00ff66");
+                    } else {
+                        chronoSlowTimer = 220; 
+                        addFloatText("TIME SLOW", playerX, playerY - 20, "#00ffff");
+                    }
+                    powerUps.splice(i, 1);
+                } else if (pu.distance < 10) {
+                    powerUps.splice(i, 1);
+                }
+            }
+
+        }
+
+        function updateEffects() {
+            if(bossFlash>0)bossFlash--;
+            if(won)victoryAge++;
+            // Update Particles & Text
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let pt = particles[i];
+                pt.x += pt.vx;
+                pt.y += pt.vy;
+                pt.life--;
+                if (pt.life <= 0) particles.splice(i, 1);
+            }
+
+            for (let i = floatTexts.length - 1; i >= 0; i--) {
+                let ft = floatTexts[i];
+                ft.y -= 0.9;
+                ft.alpha -= 0.02;
+                if (ft.alpha <= 0) floatTexts.splice(i, 1);
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            
+            if (shakeFrames > 0) {
+                shakeFrames--;
+                let offsetX = (Math.random() - 0.5) * 10;
+                let offsetY = (Math.random() - 0.5) * 10;
+                ctx.translate(offsetX, offsetY);
+            }
+
+            // Draw Background Stars
+            for (let st of stars) {
+                st.alpha += (Math.random() - 0.5) * 0.05;
+                if (st.alpha < 0.1) st.alpha = 0.1;
+                if (st.alpha > 0.8) st.alpha = 0.8;
+                
+                ctx.beginPath();
+                ctx.arc(st.x, st.y, st.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${st.alpha})`;
+                ctx.fill();
+            }
+
+            // Draw Central Core
+            ctx.save(); ctx.translate(350,350); ctx.rotate(frameCount*.012);
+            if(phase==='finisher')ctx.scale(1+phaseClock/45,1+phaseClock/45);
+            if(bossFlash>0)ctx.scale(1+bossFlash/70,1+bossFlash/70);
+            ctx.strokeStyle = phase==='counter' ? '#ffdd88' : '#ff5577'; ctx.lineWidth=3;
+            ctx.strokeRect(-36,-36,72,72); ctx.restore();
+            let corePulse = 24 + Math.sin(frameCount * 0.09) * 4;
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, corePulse, 0, Math.PI * 2);
+            ctx.fillStyle = bossFlash>0 || phase==='finisher' ? '#ffffff' : riposte>0 ? '#ffdd88' : '#ff5577';
+            ctx.shadowBlur = 25;
+            ctx.shadowColor = ctx.fillStyle;
+            ctx.fill();
+            ctx.shadowBlur = 0; 
+
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, corePulse * 0.55, 0, Math.PI * 2);
+            ctx.fillStyle = '#010103';
+            ctx.fill();
+
+            // Draw Orbital Tracks with Lane Numbers [1], [2], [3]
+            tracks.forEach((r, idx) => {
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, r, 0, Math.PI * 2);
+                let isActiveTrack = tracks[currentTrack] === r;
+                ctx.strokeStyle = isActiveTrack 
+                    ? (isSingularityActive ? 'rgba(255, 0, 255, 0.6)' : 'rgba(0, 243, 255, 0.5)')
+                    : 'rgba(255, 255, 255, 0.06)';
+                ctx.lineWidth = isActiveTrack ? 3.5 : 1;
+                ctx.stroke();
+
+                // Draw Lane Number indicator on the right side of the track circle
+                ctx.fillStyle = isActiveTrack ? (isSingularityActive ? '#ff00ff' : '#00f3ff') : 'rgba(255, 255, 255, 0.2)';
+                ctx.font = isActiveTrack ? 'bold 12px Segoe UI' : '10px Segoe UI';
+                ctx.textAlign = 'left';
+                ctx.fillText(`[${idx + 1}]`, center.x + r + 6, center.y + 4);
+            });
+
+            // Sector attacks leave an angular escape route as well as a clear radial refuge.
+            for (const field of attackFields().filter(f=>f.visible)) {
+                const opening=round*1.7+phaseClock*.008;
+                ctx.save(); ctx.beginPath();
+                ctx.arc(350,350,field.outer,opening+.48,opening+Math.PI*2-.48);
+                ctx.arc(350,350,field.inner,opening+Math.PI*2-.48,opening+.48,true);
+                ctx.closePath();
+                ctx.fillStyle=field.active?'rgba(255,60,100,.32)':'rgba(255,190,80,.09)';ctx.fill();
+                ctx.strokeStyle=field.active?'#ff5577':'#ffcd80';ctx.lineWidth=2;
+                if(!field.active)ctx.setLineDash([6,8]);ctx.stroke();
+                if(field.active) {
+                    ctx.clip();ctx.strokeStyle='rgba(255,130,150,.35)';ctx.lineWidth=1;
+                    for(let x=100;x<800;x+=18){ctx.beginPath();ctx.moveTo(x,100);ctx.lineTo(x-500,600);ctx.stroke();}
+                }
+                ctx.restore();
+            }
+            const visibleField=attackFields().find(f=>f.visible);
+            if(isPlaying && visibleField) {
+                ctx.textAlign='center';ctx.font='bold 14px Segoe UI';ctx.fillStyle=visibleField.active?'#ff8899':'#ffdd88';
+                ctx.fillText(visibleField.hint,350,565);
+                ctx.font='12px Segoe UI';ctx.fillText(visibleField.active?'UNBLOCKABLE · Dodge through the opening, never the red area':'UNBLOCKABLE · Move before the amber outline turns red',350,584);
+            }
+            // Draw Particles
+            for (const wave of pendingWaves) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(255,170,80,0.45)';
+                ctx.setLineDash([5, 9]); ctx.lineWidth = 1;
+                for (const a of wave.angles) {
+                    ctx.beginPath();
+                    ctx.moveTo(center.x + Math.cos(a)*65, center.y + Math.sin(a)*65);
+                    ctx.lineTo(center.x + Math.cos(a)*310, center.y + Math.sin(a)*310);
+                    ctx.stroke();
+                }
+                ctx.setLineDash([]); ctx.strokeStyle = '#7effcd'; ctx.lineWidth = 3;
+                if(wave.gap !== null) { ctx.beginPath(); ctx.arc(center.x, center.y, 225, wave.gap-0.3, wave.gap+0.3); ctx.stroke(); }
+                ctx.restore();
+            }
+            if (pendingWaves.length) {
+                const next = pendingWaves.reduce((a,b)=>a.delay<b.delay?a:b);
+                ctx.textAlign='center'; ctx.font='bold 15px Segoe UI'; ctx.fillStyle='#ffcc88';
+                ctx.fillText(next.label,350,610);
+                ctx.font='12px Segoe UI'; ctx.fillText('Dashed paths warn of incoming fire · Keep moving',350,632);
+            }
+            for (let pt of particles) {
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, Math.max(1, pt.life * 0.15), 0, Math.PI * 2);
+                ctx.fillStyle = pt.color;
+                ctx.globalAlpha = pt.life / 50;
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+
+            // Draw Power-Ups
+            for (let pu of powerUps) {
+                let puTrackRadius = tracks[pu.trackIndex];
+                let puX = center.x + Math.cos(pu.angle) * pu.distance;
+                let puY = center.y + Math.sin(pu.angle) * pu.distance;
+
+                ctx.beginPath();
+                ctx.arc(puX, puY, pu.size, 0, Math.PI * 2);
+                ctx.fillStyle = pu.type === 'shield' ? '#00ff66' : '#00ffff';
+                ctx.shadowBlur = 14;
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#00151a'; ctx.font = 'bold 16px Segoe UI'; ctx.textAlign = 'center';
+                ctx.fillText(pu.type === 'shield' ? '+' : '◷', puX, puY + 5);
+            }
+
+            // Draw Obstacles
+            for (let obs of obstacles) {
+                let currentAngle = obs.angle;
+                if (obs.type === 1) currentAngle += Math.sin(frameCount * 0.12 + obs.waveOffset) * 0.2;
+                
+                let obsTrackRadius = tracks[obs.trackIndex];
+                let obsX = center.x + Math.cos(currentAngle) * obs.distance;
+                let obsY = center.y + Math.sin(currentAngle) * obs.distance;
+
+                if(obs.pursuit) {
+                    ctx.save();
+                    ctx.strokeStyle=obs.warning>0?'rgba(255,175,205,.65)':'rgba(255,95,160,.28)';
+                    ctx.lineWidth=2;ctx.setLineDash(obs.warning>0?[6,7]:[]);
+                    ctx.beginPath();ctx.arc(350,350,obs.distance,0,Math.PI*2);ctx.stroke();
+                    ctx.setLineDash([]);
+                    if(obs.warning<=0) {
+                        ctx.strokeStyle='rgba(255,90,165,.55)';ctx.lineWidth=5;
+                        const tail=obs.angle-Math.sign(obs.angularSpeed)*.55;
+                        ctx.beginPath();ctx.arc(350,350,obs.distance,tail,obs.angle,obs.angularSpeed<0);ctx.stroke();
+                    }
+                    ctx.translate(obsX,obsY);ctx.rotate(obs.angle+(obs.angularSpeed>0?Math.PI/2:-Math.PI/2));
+                    ctx.beginPath();ctx.moveTo(16,0);ctx.lineTo(-10,-9);ctx.lineTo(-4,0);ctx.lineTo(-10,9);ctx.closePath();
+                    ctx.strokeStyle=obs.warning>0?'#ffd3e6':'#ffffff';ctx.fillStyle='#ff579b';ctx.lineWidth=2;
+                    if(obs.warning>0)ctx.stroke();else{ctx.fill();ctx.stroke();}
+                    ctx.restore();
+                    if(obs.warning>0){ctx.textAlign='center';ctx.fillStyle='#ffb4d0';ctx.font='bold 12px Segoe UI';ctx.fillText('LANE LOCKED · MOVE OFF THIS RING',350,560);}
+                    continue;
+                }
+                if(obs.boomerang) {
+                    ctx.save();ctx.strokeStyle=obs.returning?'rgba(100,220,255,.35)':'rgba(255,190,100,.3)';
+                    ctx.lineWidth=1;ctx.setLineDash([4,8]);ctx.beginPath();
+                    ctx.moveTo(350+Math.cos(obs.angle)*50,350+Math.sin(obs.angle)*50);
+                    ctx.lineTo(350+Math.cos(obs.angle)*320,350+Math.sin(obs.angle)*320);ctx.stroke();
+                    ctx.setLineDash([]);ctx.translate(obsX,obsY);ctx.rotate(obs.angle+(obs.returning?0:Math.PI));
+                    ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(-8,-7);ctx.lineTo(-4,0);ctx.lineTo(-8,7);ctx.closePath();
+                    ctx.strokeStyle=obs.returning?'#87eaff':'#ffc477';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=2;
+                    if(obs.warning>0)ctx.stroke();else ctx.fill();ctx.restore();continue;
+                }
+
+                ctx.beginPath();
+                ctx.arc(obsX, obsY, obs.size, 0, Math.PI * 2);
+                if (obs.warning > 0) {
+                    ctx.strokeStyle='#ffdd88'; ctx.lineWidth=2; ctx.stroke();
+                    ctx.beginPath();ctx.arc(obsX,obsY,14,0,Math.PI*2);ctx.stroke();
+                    continue;
+                }
+                ctx.fillStyle = obs.type === 1 ? '#bf00ff' : (obs.type === 2 ? '#ff3366' : '#ffaa00');
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+
+            if(phase==='barrage') {
+                ctx.beginPath();ctx.arc(350,350,tracks[weakLane],0,Math.PI*2);ctx.strokeStyle='#ffdd66';ctx.lineWidth=5;ctx.stroke();
+            }
+            // Draw Player Ship
+            let playerX = center.x + Math.cos(angle) * currentRadius;
+            let playerY = center.y + Math.sin(angle) * currentRadius;
+
+            ctx.beginPath();
+            ctx.arc(playerX, playerY, 10, 0, Math.PI * 2);
+            ctx.fillStyle = isSingularityActive ? '#ff00ff' : '#00f3ff';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = ctx.fillStyle;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            ctx.beginPath();ctx.arc(playerX,playerY,34,0,Math.PI*2);
+            ctx.strokeStyle=grazeFlash>0?'#ffffff':dashFrames>0?'#aaffff':'rgba(130,255,240,.2)';ctx.lineWidth=grazeFlash>0?2:1;ctx.stroke();
+            if(beamFlash>0 || phase==='finisher') {
+                ctx.beginPath();ctx.moveTo(playerX,playerY);ctx.lineTo(350,350);ctx.strokeStyle='#fff3bd';ctx.lineWidth=phase==='finisher'?8:3;ctx.stroke();
+            }
+            if (invulnerable > 0) {
+                ctx.beginPath(); ctx.arc(playerX,playerY,19,0,Math.PI*2);
+                ctx.strokeStyle = frameCount%12<6 ? '#ffffff' : '#ff5577'; ctx.lineWidth=2; ctx.stroke();
+            }
+            // Draw Shield Bubble
+            if (hasShield) {
+                ctx.beginPath();
+                ctx.arc(playerX, playerY, 17, 0, Math.PI * 2);
+                ctx.strokeStyle = '#00ff66';
+                ctx.lineWidth = 2.5;
+                ctx.shadowBlur = 14;
+                ctx.shadowColor = '#00ff66';
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            // Draw Floating Text Popups
+            for (let ft of floatTexts) {
+                ctx.save();
+                ctx.globalAlpha = ft.alpha;
+                ctx.fillStyle = ft.color;
+                ctx.font = 'bold 14px Segoe UI';
+                ctx.textAlign = 'center';
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+            }
+
+            // Draw UI HUD
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 22px Segoe UI';
+            ctx.textAlign = 'left';
+            ctx.fillText(`SCORE: ${score}`, 25, 40);
+
+            if (multiplier > 1) {
+                ctx.fillStyle = isSingularityActive ? '#ff00ff' : '#00ff66';
+                ctx.font = 'bold 15px Segoe UI';
+                ctx.fillText(`${multiplier}x COMBO`, 25, 68);
+            }
+
+            if (bulletTime > 0) {
+                ctx.fillStyle = '#00ffff';
+                ctx.font = 'bold 14px Segoe UI';
+                ctx.fillText(`PERFECT · BULLET TIME`, 25, 165);
+            }
+
+            ctx.fillStyle='#9bf6e5';ctx.font='12px Segoe UI';ctx.fillText('PERFECT DODGES '+stats.dodges,25,94);
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#93a8c5';
+            ctx.font = '14px Segoe UI';
+            ctx.fillText(`BEST: ${highScore}`, canvas.width - 25, 40);
+            ctx.fillStyle = '#ffdd88'; ctx.font = 'bold 15px Segoe UI';
+            ctx.fillText(`${['INNER','MIDDLE','OUTER'][rewardLane()]} · ${laneRewards[rewardLane()]}x LANE BONUS`,675,68);
+
+            ctx.textAlign='center'; ctx.fillStyle='#ff8899'; ctx.font='bold 15px Segoe UI';
+            ctx.fillText('THE SENTINEL · DUEL',350,35);
+            ctx.font='10px Segoe UI';ctx.fillStyle='#9aabb9';ctx.fillText('EXCHANGE '+(duelMove+1),350,92);
+            ctx.fillText(currentDuel().kind==='pursuit'?'LANE-LOCKED CHASE':'INWARD → TURN → OUTWARD',350,108);
+            if(isPlaying && phase==='attack' && comboCount()>1) {
+                const step=Math.min(comboCount()-1,Math.floor(phaseClock/300));
+                const local=phaseClock%300;
+                ctx.font='12px Segoe UI';ctx.fillStyle='#ffdd88';
+                ctx.fillText('COMBO '+(step+1)+' / '+comboCount()+' · '+(local<60?'READ THE NEXT MOVE':local>=270?'CLEAR · REPOSITION':'KEEP YOUR EXIT OPEN'),350,580);
+            }
+            if (bossHP <= 3 && isPlaying) {
+                ctx.font='11px Segoe UI';ctx.fillText('ENRAGED · FASTER ORBS',350,76);
+            }
+            ctx.fillStyle='#342032'; ctx.fillRect(255,47,190,7);
+            ctx.fillStyle='#ff5577'; ctx.fillRect(255,47,190*bossHP/6,7);
+            ctx.textAlign='left'; ctx.fillStyle='#ff8899'; ctx.font='14px Segoe UI';
+            ctx.fillText('LIVES '+ '♥'.repeat(lives) + '♡'.repeat(3-lives),25,138);
+            if(isPlaying){ctx.textAlign='center';ctx.font='bold 18px Segoe UI';ctx.fillStyle=riposte>0?'#ffdd88':'#9abcca';ctx.fillText(duelCue(),350,610);
+                ctx.font='12px Segoe UI';ctx.fillText(riposte>0?'PRESS E NOW · '+(riposte/60).toFixed(1)+'s':currentDuel().kind==='pursuit'?'Change lanes to escape the locked-on orb':'Amber spears travel inward · Blue spears return on the dashed paths',350,638);}
+            ctx.textAlign='right';ctx.font='12px Segoe UI';ctx.fillStyle='#aadddd';
+            ctx.fillText(dashCooldown>0?'DODGE '+(dashCooldown/60).toFixed(1)+'s':'DODGE READY · SWITCH LANES',675,94);
+            if(bulletTime>0) {ctx.fillStyle='rgba(65,180,220,.08)';ctx.fillRect(0,0,700,700);}
+            if (paused) {
+                ctx.fillStyle = 'rgba(1,1,3,.82)'; ctx.fillRect(0,0,700,700);
+                ctx.textAlign = 'center'; ctx.fillStyle = '#b9faff'; ctx.font = 'bold 32px Segoe UI';
+                ctx.fillText('PAUSED',350,335); ctx.font = '16px Segoe UI'; ctx.fillText('Press P or click Resume',350,375);
+            }
+            // Game Over / Start Screen Overlay
+            if (!isPlaying) {
+                ctx.fillStyle = won ? 'rgba(1, 1, 3, 0.65)' : 'rgba(1, 1, 3, 0.9)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                if(won) {
+                    const progress=Math.min(victoryAge/110,1);
+                    ctx.save();ctx.strokeStyle='#8affdf';ctx.globalAlpha=1-progress;
+                    ctx.lineWidth=4;ctx.beginPath();ctx.arc(350,350,35+progress*280,0,Math.PI*2);ctx.stroke();ctx.restore();
+                }
+
+                ctx.fillStyle = '#00f3ff';
+                ctx.font = 'bold 42px Segoe UI';
+                ctx.textAlign = 'center';
+                ctx.shadowBlur = 25;
+                ctx.shadowColor = '#00f3ff';
+                ctx.fillText(won ? 'SENTINEL DEFEATED' : 'ORBIT SHIFT', center.x, center.y - 45);
+                ctx.shadowBlur = 0;
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '16px Segoe UI';
+                if (restartAllowedAt > 0) {
+                    ctx.fillText(`${won ? 'Signal restored. You survived.' : 'Signal lost. Learn its patterns. Try again.'}`, center.x, center.y - 5);
+                    ctx.fillStyle = '#00ffcc';
+                    ctx.font = 'bold 18px Segoe UI';
+                    ctx.fillText(`Final Score: ${score}`, center.x, center.y + 25);
+                    ctx.fillStyle = '#93a8c5';
+                    ctx.font = '15px Segoe UI';
+                    ctx.font='14px Segoe UI';
+                    resultLines.forEach((line,i)=>ctx.fillText(line,350,450+i*23));
+                    const remaining = Math.max(0, Math.ceil((restartAllowedAt - performance.now()) / 1000));
+                    ctx.fillText(remaining > 0 ? `Ready in ${remaining}...` : 'Click / Space to play again', center.x, center.y + 60);
+                } else {
+                    ctx.fillText(`Click / Space · Read the windup. Dodge. Strike back with E.`, center.x, center.y + 20);
+                }
+            }
+
+            document.getElementById('strike').disabled = !isPlaying || paused || phase !== 'attack' || riposte<=0 || strikeCooldown>0;
+            ctx.restore();
+        }
+
+        let lastTime = null, accumulator = 0;
+        function loop(now) {
+            if (lastTime === null) lastTime = now;
+            accumulator += Math.min((now - lastTime) / 1000, 0.1);
+            lastTime = now;
+            while (accumulator >= 1/60) {
+                update();
+                if (!paused) updateEffects();
+                accumulator -= 1/60;
+            }
+            draw();
+            requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
+
+

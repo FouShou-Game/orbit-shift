@@ -1,0 +1,2316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Next Second · Story &amp; Inferno</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #010103;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100dvh;
+            overflow: auto;
+            user-select: none;
+        }
+        canvas {
+            width: min(700px, 96vw, calc(100dvh - 150px));
+            height: auto;
+            touch-action: manipulation;
+            box-shadow: 0 0 70px rgba(0, 243, 255, 0.25);
+            border-radius: 20px;
+            cursor: pointer;
+            background: radial-gradient(circle, #0b0b26 0%, #010103 100%);
+        }
+        .instructions {
+            margin-top: 15px;
+            font-size: 13px;
+            color: #93a8c5;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-align: center;
+        }
+    button {background:#0c2031;color:#adfaff;border:1px solid #235168;border-radius:10px;padding:11px 16px;cursor:pointer;font:inherit;touch-action:manipulation} button:hover{background:#184057} button:focus-visible{outline:2px solid #fff} .controls{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:12px 8px} .instructions{max-width:680px;line-height:1.7;letter-spacing:0;margin:8px 12px} 
+        body {box-sizing:border-box;padding:12px;justify-content:flex-start;gap:8px;background:radial-gradient(ellipse at top,#0a1822,#010103 65%)}
+        canvas {width:min(700px,96vw,calc(100dvh - 245px));box-shadow:0 0 35px #00cbd514;border:1px solid #162c36;border-radius:14px}
+        .controls{margin:0;gap:6px;align-items:center;max-width:700px}
+        button{padding:6px 10px;border-radius:6px;background:#091319;border-color:#24343d;font-size:12px;color:#aac2cc}
+        button:disabled{opacity:.35;cursor:default}
+        .controls [data-lane]{display:none}
+        .instructions{font-size:11px;margin:0;color:#657e8c;text-transform:none;max-width:680px}
+        details{width:min(700px,96vw);font-size:12px;color:#9ab3bf;text-align:center}
+        summary{cursor:pointer;list-style:none;color:#6e8b99;font-size:11px;padding:3px}
+        .helpcontent{background:#091117;border:1px solid #20323c;border-radius:8px;padding:12px;line-height:1.8;margin-top:6px}
+        @media(pointer:coarse){.controls [data-lane]{display:inline-block}button{min-height:36px}.controls{flex-wrap:wrap}canvas{width:min(700px,94vw,calc(100dvh - 160px))}}
+        @media(max-height:500px){body{overflow:auto}canvas{width:min(70vw,400px)}}
+        .game-stage{position:relative;width:min(700px,calc(100vw - 24px),calc(100dvh - 140px));aspect-ratio:1;flex:none}
+        .game-stage canvas{display:block;width:100%;height:100%;box-sizing:border-box}
+        #storyPanel{position:absolute;z-index:2;left:6%;right:6%;top:50%;transform:translateY(-30%);box-sizing:border-box;
+            padding:22px 24px;border:1px solid #34717b;border-radius:12px;background:rgba(3,13,23,.96);
+            box-shadow:0 0 35px #00f3ff14;color:#e1f2f7;font-size:clamp(14px,2.3vw,19px);line-height:1.6;text-align:left}
+        #storyPanel[hidden]{display:none}
+        #speaker{display:block;color:#9cfff0;font-size:12px;letter-spacing:2px;margin-bottom:10px}
+        #dialogue{margin-bottom:16px}
+        #storyNext{background:#123640;border-color:#66c6d0;color:#d7ffff;padding:9px 18px;font-size:14px}
+        #resumeStory,#restartStory{margin-left:6px}
+        #storyPanel[data-mode="tutorial"],#storyPanel[data-mode="ending"],#storyPanel[data-mode="complete"]{top:auto;bottom:3%;transform:none;padding:12px 16px;font-size:13px;line-height:1.5}
+        #storyPanel[data-mode="tutorial"] #dialogue{margin-bottom:4px}
+        #storyPanel[data-mode="tutorial"] #speaker{margin-bottom:4px}
+        @media(pointer:coarse){.game-stage{width:min(700px,calc(100vw - 24px),calc(100dvh - 160px))}}
+        @media(max-height:500px){.game-stage{width:min(70vw,400px)}}
+            :root{color-scheme:dark;--ice:#bde9eb;--muted:#7f9aa8;--line:#29424e}
+        body{background:radial-gradient(ellipse at 50% 5%,#10222d,#04090e 65%);color:#d9e8ed}
+        .game-stage canvas{background:radial-gradient(ellipse at 50% 45%,#0b1823,#04090f 75%);border-color:#263e4b;box-shadow:0 12px 60px #0006;border-radius:12px}
+        button{border-color:var(--line);background:#0b1922;color:#c0d9df;transition:background .15s,border-color .15s}
+        button:hover{background:#17303a;border-color:#61939b}button:focus-visible,a:focus-visible{outline:2px solid #a4ebdc;outline-offset:3px}
+        [hidden]{display:none!important}
+        #titleScreen{position:absolute;inset:0;z-index:3;text-align:center;overflow:auto;border-radius:12px;background:linear-gradient(#040d1455,transparent 50%,#040d1444)}
+        .title-brand{position:absolute;top:7%;left:8%;right:8%}.eyebrow{font-size:clamp(9px,1.4vw,11px);letter-spacing:.3em;color:#7babb6;text-transform:uppercase}
+        h1{margin:12px 0 0;font-size:clamp(30px,6.4vw,56px);font-weight:300;line-height:1.06;letter-spacing:.08em;color:#e0efef}h1 span{font-weight:600}
+        .title-clock{position:absolute;top:41%;left:0;right:0;font:clamp(24px,5vw,39px) Consolas,monospace;color:#c8f0e5;letter-spacing:.12em}
+        .clock-caption{display:block;font:clamp(8px,1.2vw,10px) 'Segoe UI',sans-serif;letter-spacing:.22em;color:#7a9ea7;margin-top:8px}
+        .main-menu{position:absolute;top:59%;left:23%;right:23%;display:flex;flex-direction:column;gap:8px}.main-menu button,.main-menu a{padding:10px 12px;text-decoration:none;border:1px solid #355462;border-radius:5px;font-size:14px;background:#0a1922e8;color:#d5ebed}
+        .main-menu .primary{background:#183b43;border-color:#7fb9ba;color:#e1ffef}.menu-detail{font-size:10px;color:#8eaab2;line-height:1.4;margin-top:2px}
+        .title-footer{position:absolute;bottom:4%;left:5%;right:5%;font-size:9px;letter-spacing:.12em;color:#5c7e8d}
+        #practiceChoices{top:52%;left:12%;right:12%;gap:6px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}#practiceChoices a{padding:7px;font-size:12px}#practiceChoices button{padding:6px;font-size:11px}#practiceRecall,#practiceBack{grid-column:1 / -1}
+        #storyPanel{background:linear-gradient(135deg,#0b1c28f7,#07131bf7);border:1px solid #3b5968;border-left:3px solid #8abcc1;border-radius:6px;box-shadow:0 12px 30px #0005;line-height:1.6}
+        #speaker{display:flex;align-items:center;gap:10px;letter-spacing:.2em;color:#b4e5e1}
+        #speaker::before{content:'';display:inline-block;width:12px;height:12px;border:1px solid #8abcc1;border-radius:50%;border-top-color:transparent;flex:none}
+        #storyPanel[data-speaker="THE ARCHIVIST"]{border-left-color:#b5a2d2}#storyPanel[data-speaker="THE ARCHIVIST"] #speaker{color:#cbb8e3}#storyPanel[data-speaker="THE ARCHIVIST"] #speaker::before{border:3px double #b5a2d2;border-radius:0;width:10px;height:12px}
+        #storyMeta{color:#7e9ca9;font-size:11px;line-height:1.5;margin:0 0 12px}#storyMeta:empty{display:none}
+        #storyNext{background:#17363e;border-color:#639299;color:#d2f1ec;font-size:13px;padding:8px 16px}
+        .instructions{color:#829daa}.helpcontent{background:#08151d;border-color:#29424e;text-align:left}.helpcontent a{color:#a4d8d5}.controls[hidden]{display:none}
+        @media(max-width:480px){.title-brand{top:6%}h1{margin-top:8px;font-size:32px}.main-menu{left:19%;right:19%;gap:5px;top:57%}.main-menu button{padding:6px 10px;font-size:12px}.title-clock{top:40%;font-size:24px}.clock-caption{margin-top:4px}.menu-detail{font-size:9px}.title-footer{font-size:8px;bottom:2%}#practiceChoices{top:50%;gap:4px}#practiceChoices a{padding:5px}#storyPanel{padding:16px;font-size:14px}}
+        @media(prefers-reduced-motion:reduce){button{transition:none}}
+
+            .game-stage{container-type:inline-size}
+        @container(max-width:500px){h1{font-size:32px;margin-top:8px}.title-brand{top:6%}.title-clock{top:39%;font-size:25px}.clock-caption{font-size:8px;margin-top:4px}.main-menu{top:56%;left:19%;right:19%;gap:5px}.main-menu button{min-height:30px;padding:5px 10px;font-size:12px}.menu-detail{font-size:9px}.title-footer{bottom:2%;font-size:8px}#practiceChoices{top:46%;gap:4px}#practiceChoices a{padding:5px;font-size:11px}#practiceChoices button{min-height:26px}#storyPanel[data-mode="complete"]{font-size:12px;padding:10px 12px}#storyPanel[data-mode="complete"] #dialogue{margin-bottom:8px}}
+        .menu-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+        #recordsScreen{position:absolute;inset:0;z-index:4;box-sizing:border-box;padding:6%;overflow:auto;border:1px solid #38535d;border-radius:12px;background:#07131bfA;text-align:left}
+        #recordsScreen h2{font-weight:400;font-size:clamp(22px,5cqw,32px);margin:8px 0 12px;color:#e0f3ed}
+        #clearSummary,#recordFootnote{font-size:clamp(11px,2cqw,13px);color:#9bb6bf;line-height:1.6}
+        .record-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0}
+        .record-card{padding:16px;border:1px solid #29404d;border-radius:6px;background:#0a1a24}
+        .record-card h3{font-size:clamp(13px,2.5cqw,17px);font-weight:500;margin:8px 0;color:#bfd5dc}
+        .record-card p{font-size:clamp(11px,2cqw,13px);line-height:1.5;color:#8da9b6;margin:0}
+        .record-status{font-size:10px;letter-spacing:.1em;color:#7895a3}.record-card[data-earned="true"]{border-color:#548e83;background:#10282b}.record-card[data-earned="true"] .record-status{color:#b0f4d9}
+        #recordsBack{margin-top:12px;padding:8px 18px}
+        #finaleScreen{position:absolute;inset:0;z-index:2;text-align:center;pointer-events:none}
+        #finaleScreen .eyebrow{position:absolute;top:10%;left:5%;right:5%}
+        .finale-clock{position:absolute;top:48%;left:0;right:0;font:clamp(36px,9cqw,64px) Consolas,monospace;letter-spacing:.08em;color:#d9f8e8}
+        .finale-copy{position:absolute;top:65%;left:10%;right:10%;font-size:clamp(13px,2.8cqw,19px);line-height:1.6;color:#c2dfdc}
+        #finaleStatus{font-size:clamp(10px,2cqw,12px);letter-spacing:.15em;color:#86b9b0}
+        #finaleMessage{min-height:3.2em;margin:12px 0}
+        #finaleContinue{pointer-events:auto;padding:8px 18px}
+        #endingRecords{background:#17363e;border-color:#639299}
+        #storyPanel[data-mode="complete"]{max-height:44%;overflow:auto}
+        @container(max-width:420px){#recordsScreen{padding:6%}.record-grid{gap:6px;margin:12px 0}.record-card{padding:10px}.record-card h3{margin:6px 0}.record-status{font-size:9px}#recordsScreen h2{margin-bottom:8px}#recordFootnote{font-size:10px}.finale-copy{top:63%}#finaleMessage{margin:8px 0}}
+        .world-switch{position:absolute;z-index:2;top:2%;left:4%;right:4%;display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left}.world-switch span{font-size:9px;letter-spacing:.12em;color:#779da8}.world-switch button{font-size:10px;padding:7px 10px;letter-spacing:.06em}.title-brand{top:10%}#modeToggle[aria-checked="true"]{border-color:#e39975;background:#44272b;color:#ffe4bd}#modeToggle:disabled{opacity:.55}
+        #infernoPractice{position:absolute;top:50%;left:12%;right:12%;display:grid;grid-template-columns:1fr 1fr;gap:7px;text-align:left}#infernoPractice button{padding:9px;font-size:12px}#infernoPractice small{display:block;margin-top:4px;color:#b79995;font-size:10px}#infernoPracticeBack{grid-column:1 / -1}
+        #infernoRecords{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:24px 0}#infernoRecords p{padding:18px;margin:0;background:#241a23;border:1px solid #634248;border-radius:6px;font-size:11px;color:#bfa6a1}#infernoRecords strong{display:block;margin-top:8px;font:25px Consolas,monospace;color:#ffd2a5}
+        html[data-world="inferno"] body{background:radial-gradient(ellipse at 50% 5%,#341a23,#090810 65%)}html[data-world="inferno"] .game-stage canvas{background:radial-gradient(ellipse at 50% 45%,#291723,#090910 75%);border-color:#6d4249;box-shadow:0 12px 70px #992f201c}html[data-world="inferno"] .eyebrow{color:#c18d83}html[data-world="inferno"] h1{color:#ffe4d0}html[data-world="inferno"] .title-clock{color:#e6b17e}html[data-world="inferno"] .clock-caption,html[data-world="inferno"] .menu-detail{color:#b49192}html[data-world="inferno"] .main-menu button,html[data-world="inferno"] #infernoPractice button{background:#251a22;border-color:#65434a;color:#edcbc1}html[data-world="inferno"] .main-menu .primary{background:#55292b;border-color:#c88265;color:#ffe2bd}html[data-world="inferno"] #recordsScreen{background:#170f18fA;border-color:#6d4249}html[data-world="inferno"] .title-footer{color:#ac7b7d}
+        #modeTransition{position:absolute;inset:0;z-index:8;overflow:hidden;pointer-events:auto;border-radius:12px;background:#080d15;--flare:#ef9361;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ffe2bf;isolation:isolate}#modeTransition[data-target="story"]{--flare:#83e5d5;color:#d5fff0}#modeTransition::before,#modeTransition::after{content:'';position:absolute;inset:-40%;z-index:-1;background:linear-gradient(140deg,transparent 35%,var(--flare) 49%,#120e18 50%);animation:world-shear 1.25s cubic-bezier(.7,0,.3,1) both}#modeTransition::after{transform:rotate(180deg);animation-name:world-shear-back}#modeTransition svg{width:45%;color:var(--flare);opacity:.65;position:absolute;animation:world-ring 1.25s ease-in-out both}#modeTransition strong{font-size:clamp(24px,6cqw,44px);letter-spacing:.16em;z-index:1;text-shadow:0 0 30px #000}#modeTransition small{margin-top:14px;letter-spacing:.18em;font-size:10px;z-index:1}#modeTransition{animation:world-fade 1.25s ease both}
+        @keyframes world-shear{0%{transform:translate(-55%,-55%) rotate(10deg)}45%,60%{transform:translate(0,0) rotate(10deg)}100%{transform:translate(55%,55%) rotate(10deg)}}@keyframes world-shear-back{0%{transform:translate(55%,55%) rotate(190deg)}45%,60%{transform:translate(0,0) rotate(190deg)}100%{transform:translate(-55%,-55%) rotate(190deg)}}@keyframes world-ring{0%{transform:scale(.5) rotate(-90deg);opacity:0}45%{opacity:.8}100%{transform:scale(2.3) rotate(90deg);opacity:0}}@keyframes world-fade{0%,100%{opacity:0}20%,80%{opacity:1}}
+        .inferno-game{display:flex;flex-direction:column;align-items:center;gap:8px}.inferno-game .stage{position:relative;width:min(700px,calc(100vw - 24px),calc(100dvh - 140px));aspect-ratio:1;container-type:inline-size}.inferno-game canvas{display:block;width:100%;height:100%;border:1px solid #69424b;border-radius:12px;background:radial-gradient(ellipse at 50% 42%,#201b28,#080b13 74%);touch-action:manipulation;box-shadow:0 12px 60px #0006}.inferno-game .panel{position:absolute;inset:23% 9% auto;padding:24px;text-align:center;background:#16131df7;border:1px solid #956964;border-top:2px solid #e1b986;border-radius:8px;max-height:72%;overflow:auto}.inferno-game h1{font-size:clamp(25px,6cqw,42px);font-weight:400;letter-spacing:.13em;margin:12px 0}.inferno-game [data-inferno="message"]{font-size:clamp(12px,2.3cqw,16px);line-height:1.65;color:#cdb9c2;white-space:pre-line;margin:12px 0}.inferno-game .panel small{display:block;font-size:clamp(10px,1.7cqw,12px);color:#a991a4;line-height:1.6}.inferno-game button{font-size:12px;color:#dcd8db;background:#211c28;border:1px solid #5b455a;border-radius:5px;padding:8px 12px}.inferno-game [data-inferno="start"]{background:#453132;border-color:#ba987e;color:#ffe4c9;margin:8px 4px;padding:10px 18px}.inferno-game .controls{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}.inferno-game .hint{font-size:11px;color:#b29daf;line-height:1.5;text-align:center;max-width:680px}.inferno-game .touch-lane{display:none}
+        @container(max-width:500px){.title-brand{top:14%}.world-switch{top:2%}.world-switch span{font-size:8px}.world-switch button{padding:5px 7px;font-size:9px}#infernoPractice{top:48%;gap:4px}#infernoPractice button{padding:6px;font-size:11px}#infernoPractice small{font-size:9px;margin-top:2px}.inferno-game .panel{inset:16% 6% auto;padding:15px;max-height:82%}.inferno-game h1{margin:7px 0}.inferno-game [data-inferno="message"]{margin:8px 0}#infernoRecords{gap:8px}#infernoRecords p{padding:12px}#modeTransition small{font-size:8px}}
+        @media(pointer:coarse){.inferno-game .touch-lane{display:inline-block}.inferno-game button{min-height:36px}.inferno-game .stage{width:min(700px,calc(100vw - 24px),calc(100dvh - 205px))}}
+        @media(prefers-reduced-motion:reduce){#modeTransition{animation:none}#modeTransition::before,#modeTransition::after{animation:none;background:radial-gradient(circle,var(--flare),transparent 70%);opacity:.12}#modeTransition svg{animation:none;opacity:.2}}
+        #titleScreen:has(#infernoPractice:not([hidden]),#practiceChoices:not([hidden])) .title-clock{display:none}
+        .inferno-game .panel{box-sizing:border-box}
+        .inferno-game[data-result="cleared"] .panel{inset:19% 9% auto;padding:30px 24px 26px;border-color:#a58c75;border-top-color:#f2d5a3;background:linear-gradient(155deg,#241c25f7,#11131bf7);box-shadow:0 18px 55px #0008}
+        .inferno-game[data-result="cleared"] .panel::before{content:'VI';display:block;width:58px;height:58px;line-height:58px;margin:0 auto 17px;border:1px solid #b19475;border-radius:50%;color:#ead1a9;font:26px/58px Georgia,serif;box-shadow:0 0 0 6px #c79c6510}
+        .inferno-game[data-result="cleared"] [data-inferno="eyebrow"]{color:#d1b991;letter-spacing:.18em}
+        .inferno-game[data-result="cleared"] h1{font-size:clamp(24px,5.7cqw,38px);color:#f2dfc1}
+        @container(max-width:500px){.inferno-game[data-result="cleared"] .panel{inset:10% 6% auto;padding:18px 14px}.inferno-game[data-result="cleared"] .panel::before{width:38px;height:38px;font-size:20px;line-height:38px;margin-bottom:12px}}
+        @container(max-width:360px){.title-brand h1{font-size:28px}.title-clock{top:42%;font-size:23px}#infernoPractice small{display:none}}
+    </style>
+</head>
+<body>
+
+    <div id="storyStage" class="game-stage">
+    <canvas id="gameCanvas" width="700" height="700" aria-label="The Next Second orbit arena"></canvas>
+    <section id="titleScreen" aria-label="Main menu">
+      <div class="world-switch"><span id="modeStatus">COMPLETE THE STORY TO UNLOCK</span><button id="modeToggle" role="switch" aria-checked="false" aria-label="Inferno mode" aria-describedby="modeStatus" disabled>Inferno · Locked</button></div>
+      <header class="title-brand"><div id="titleEyebrow" class="eyebrow">A story held between seconds</div><h1 id="titleBrand">THE NEXT<br><span>SECOND</span></h1></header>
+      <div class="title-clock"><span id="titleClock">00:59</span><small id="clockCaption" class="clock-caption">ONE MORE MOMENT.</small></div>
+      <div id="mainMenu" class="main-menu"><button id="titleContinue" class="primary">Continue</button><button id="titleNew" title="Start from Chapter I and replace the saved journey. Challenge records are kept.">New journey</button><div class="menu-pair"><button id="titlePractice">Practice</button><button id="titleRecords">Records</button></div><div id="continueDetail" class="menu-detail"></div></div>
+      <nav id="practiceChoices" class="main-menu" aria-label="Practice a move" hidden><a id="practiceRecall" href="orbit-memory.html">Closing Pages / Recall</a><a href="orbit-gap-wall.html">Rotating Gap</a><a href="orbit-compression.html">Staggered Rings</a><a href="orbit-locked-cut.html">Locked Cut</a><a href="orbit-combat-trial.html">Combo Drill</a><button id="practiceBack">Back</button></nav>
+      <nav id="infernoPractice" aria-label="Inferno practice" hidden><button data-inferno-practice="0">01 · Lock / Weave<small>Gap + cut + compression</small></button><button data-inferno-practice="1">02 · Backswing<small>Read the gap reversal</small></button><button data-inferno-practice="2">03 · Cross Current<small>Catch the offset openings</small></button><button data-inferno-practice="3">04 · Double Take<small>Repeated locks and cuts</small></button><button data-inferno-practice="4">05 · Needle Turn<small>Two changes of direction</small></button><button data-inferno-practice="5">06 · Zero Hour<small>Three attacks together</small></button><button id="infernoPracticeBack">Back</button></nav>
+      <footer id="titleFooter" class="title-footer">THREE CHAPTERS · ONE DECISION</footer>
+    </section>
+    <div id="storyPanel" aria-live="polite">
+      <strong id="speaker"></strong>
+      <div id="dialogue"></div><div id="storyMeta"></div>
+      <button id="storyNext">Continue</button>
+      <button id="resumeStory" hidden>Resume Chapter II</button>
+      <button id="endingRecords" hidden>Clear records</button><button id="replayEnding" hidden>Replay ending</button><button id="restartStory" hidden>New journey</button><button id="endingMenu" hidden>Main menu</button>
+      <button id="restartEcho" title="Restart Chapter III from phase 1 with 3 lives" hidden>Restart Echo · 3 lives</button>
+    </div>
+    <section id="finaleScreen" aria-label="The next second" aria-live="polite" hidden>
+      <div class="eyebrow">THE NEXT SECOND</div><div id="finaleClock" class="finale-clock">00:59</div>
+      <div class="finale-copy"><div id="finaleStatus">TIME HELD</div><p id="finaleMessage">For a moment, nothing moves.</p><button id="finaleContinue" hidden>View your clear</button></div>
+    </section>
+    <section id="recordsScreen" aria-labelledby="recordsHeading" hidden>
+      <div class="eyebrow">MOMENTS THAT STAY</div><h2 id="recordsHeading">Challenge records</h2><p id="clearSummary"></p>
+      <div id="storyRecordGrid" class="record-grid">
+        <article id="record-firstClear" class="record-card"><span id="status-firstClear" class="record-status"></span><h3>The next second</h3><p>Reach 01:00. Your first clear stays with you.</p></article>
+        <article id="record-noRewinds" class="record-card"><span id="status-noRewinds" class="record-status"></span><h3>No turning back</h3><p>Clear both bosses in one journey without defeat or restarting from a checkpoint.</p></article>
+        <article id="record-archivistNoHit" class="record-card"><span id="status-archivistNoHit" class="record-status"></span><h3>Untouched · Archivist</h3><p>Clear the entire Archivist fight without taking a hit.</p></article>
+        <article id="record-echoNoHit" class="record-card"><span id="status-echoNoHit" class="record-status"></span><h3>Untouched · Echo</h3><p>Clear all three Echo phases in one attempt without taking a hit.</p></article>
+      </div>
+      <div id="infernoRecords" hidden><p>FULL CLEARS<strong id="infernoClearCount">0</strong></p><p>FURTHEST CLEAR<strong id="infernoFurthest">0 / 6</strong></p><p>BEST TIME<strong id="infernoBestTime">—</strong></p><p>FEWEST HITS<strong id="infernoBestHits">—</strong></p></div>
+      <p id="recordFootnote">Archivist's Recall attack is allowed. Returning to the menu and continuing the current fight is allowed. Loading an anchor or restarting a fight breaks No turning back. Records stay when you start a new journey.</p>
+      <button id="recordsBack">Back</button>
+    </section>
+    <div id="modeTransition" hidden aria-live="polite"><svg viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="80" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="65 18"/><circle cx="100" cy="100" r="57" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="130 25"/><path d="M100 30V100L145 145 M50 56L100 100L64 163" fill="none" stroke="currentColor" stroke-width="2"/></svg><strong id="modeTransitionTitle">INFERNO</strong><small id="modeTransitionCaption">LIMITERS RELEASED</small></div>
+    </div>
+    <section id="infernoGame" class="inferno-game" hidden aria-label="Inferno combat"><div class="stage">
+ <canvas data-inferno="arena" width="700" height="700" tabindex="-1" aria-label="Echo Inferno: six continuous combat sequences"></canvas>
+ <section data-inferno="panel" class="panel" aria-live="polite"><div data-inferno="eyebrow" class="eyebrow">NO DIALOGUE. NO ANCHORS.</div><h1 data-inferno="heading">ECHO / INFERNO</h1><p data-inferno="message">Six sequences. Three lives. One attempt.
+Follow the mint gap. Change orbit after the gold lock.
+Reach the gold outer mark and press E to break an attack early.</p><small data-inferno="recordHint">Full clears have their own Inferno records.</small>
+ <label hidden>FULL FIGHT / FOCUSED PRACTICE</label><select data-inferno="runMode" hidden><option value="full">Full fight · 3 lives</option value="0">Practice 1 · Lock / Weave</option><option value="1">Practice 2 · Backswing</option><option value="2">Practice 3 · Cross Current</option><option value="3">Practice 4 · Double Take</option><option value="4">Practice 5 · Needle Turn</option><option value="5">Practice 6 · Zero Hour</option></select><button data-inferno="start">Enter Inferno · R</button>
+ </section>
+</div>
+<div class="controls"><button data-inferno="menu">Inferno menu</button><button data-inferno="reverse">Reverse · Space</button><button class="touch-lane" data-lane="0">1 · Inner</button><button class="touch-lane" data-lane="1">2 · Mid</button><button class="touch-lane" data-lane="2">3 · Outer</button><button data-inferno="counter" disabled>Counter · E</button><button data-inferno="pause" disabled>Pause · P</button><button data-inferno="sound">Sound: on</button></div>
+<div class="hint">SPACE reverse · W / ↑ outward · S / ↓ inward · 1 / 2 / 3 blink · E counter · P pause · R retry after defeat</div>
+</section>
+    <div id="battleControls" class="controls"><button id="reverse">Reverse · Space</button><button data-lane="0">1 · Inner</button><button data-lane="1">2 · Mid</button><button data-lane="2">3 · Outer</button><button id="strike" disabled>Counter · E</button><button id="pause">Pause · P</button><button id="menuButton">Menu</button></div>
+    <div id="controlHint" class="instructions">↑ W outward &nbsp; · &nbsp; ↓ S inward &nbsp; · &nbsp; SPACE reverse &nbsp; · &nbsp; 1 / 2 / 3 blink &nbsp; · &nbsp; E counter</div>
+    <details id="gameHelp"><summary>Controls & rules ▾</summary><div class="helpcontent">
+        <a href="orbit-memory.html">Closing Pages / Recall · practice</a><br>
+        <a href="orbit-combat-trial.html" style="color:#9cfff0">Combo Drill · three moves, then a combined attack</a><br>
+        <a href="orbit-gap-wall.html" style="color:#9cfff0">Rotating Gap · practice</a><br>
+        <a href="orbit-compression.html" style="color:#9cfff0">Staggered Rings · practice</a> · <a href="orbit-locked-cut.html" style="color:#9cfff0">Locked Cut · practice</a><br>
+        ↑ / W moves outward one orbit; ↓ / S moves inward one orbit. No wrapping at the edges. 1 / 2 / 3 blink directly to the inner / middle / outer orbit. Check your landing position.<br>
+        Chapter II projectiles: switch orbits just before contact for a Perfect Dodge. Its 0.15s window has a 1.25s cooldown. This opens an early counter. When bullet time is ready, it slows enemies for 0.6s while you move normally; bullet time has a 2.5s cooldown. Pass close to a projectile to graze it. Each projectile can reward one graze.<br>
+        Closing Pages and Echo's walls, rings and cuts must be avoided through movement. They cannot trigger Perfect Dodge or graze rewards.<br>
+        Echo: follow the rotating gap, line up with staggered rings, and switch only after the gold target lock. A blink does not protect you from dangerous landing positions.<br>
+        Chapter II: Pursuit Cut locks one lane; Returning Spears cross all lanes and come back; Closing Pages squeeze inward. Reverse between the pages, then cross the mint exit on its marked orbit. Some cleared pages return once: "AGAIN." restores your position and the attack, with 0.3 seconds to prepare. The recalled page has a narrower exit. Health and completed progress stay with you. Chapter III progresses from single moves to chains to a rotating wall with locked cuts. Press E while the core is gold. Perfect Dodge against projectiles creates an early opening.<br>
+        Chapter II restarts with 3 lives after defeat. Echo saves an anchor at each phase: a retry restores the lives you had at that anchor. Restart Echo begins phase 1 with 3 lives. Practice ends at its own result screen. P pauses.
+    </div></details>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let audioContext = null, audioBus = null, muted = false;
+        let bossFlash = 0, victoryAge = 0;
+        const soundButton = document.createElement('button');
+        soundButton.textContent = 'Sound: On'; soundButton.setAttribute('aria-pressed','false');
+        document.querySelector('#battleControls').appendChild(soundButton);
+        async function unlockAudio() {
+            try {
+                if (!audioContext) {
+                    const Audio = window.AudioContext || window.webkitAudioContext;
+                    if (!Audio) { soundButton.textContent='Audio unavailable'; return; }
+                    audioContext = new Audio(); audioBus = audioContext.createGain();
+                    audioBus.gain.value = muted ? 0 : .3; audioBus.connect(audioContext.destination);
+                }
+                if (audioContext.state !== 'running') await audioContext.resume();
+            } catch { soundButton.textContent='Audio blocked · Retry'; }
+        }
+        soundButton.onclick = () => {
+            muted=!muted; unlockAudio();
+            if(audioBus) audioBus.gain.value=muted?0:.3;
+            soundButton.textContent=muted?'Sound: Off':'Sound: On';
+            soundButton.setAttribute('aria-pressed',String(muted));
+            if(!muted) sound('hit');
+        };
+        const testSoundButton=document.createElement('button');
+        testSoundButton.textContent='Test hit sound';
+        document.querySelector('.helpcontent').appendChild(testSoundButton);
+        testSoundButton.onclick=async()=>{
+            muted=false; soundButton.textContent='Sound: On'; soundButton.setAttribute('aria-pressed','false');
+            await unlockAudio(); if(audioBus)audioBus.gain.value=.3;
+            await sound('hit');
+            testSoundButton.textContent=audioContext?.state==='running'?'Replay hit sound':'Audio blocked · Retry';
+        };
+        document.addEventListener('pointerdown',unlockAudio);
+        document.addEventListener('keydown',unlockAudio);
+        async function sound(kind) {
+            if(muted) return;
+            await unlockAudio();
+            if (!audioContext || muted || audioContext.state !== 'running') return;
+            const notes = {tick:[880],signal:[440,660],graze:[1100],perfect:[660,990,1320],reverse:[420,300],lane:[540,720],hit:[480,230],strike:[220,880],open:[440,660,880],recall:[950],win:[392,494,587,784],lose:[220,165,110],start:[330,440]};
+            try { (notes[kind] || [440]).forEach((frequency,i)=>{
+                const osc=audioContext.createOscillator(), gain=audioContext.createGain();
+                const at=audioContext.currentTime+i*.09;
+                osc.type=kind==='hit'?'square':kind==='recall'?'sawtooth':'sine';osc.frequency.value=frequency;
+                if(kind==='hit')osc.frequency.exponentialRampToValueAtTime(frequency*.45,at+.18);
+                if(kind==='recall')osc.frequency.exponentialRampToValueAtTime(150,at+.18);
+                gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(kind==='recall'?.25:.45,at+.008);
+                gain.gain.exponentialRampToValueAtTime(.001,at+.18);
+                osc.connect(gain);gain.connect(audioBus);osc.start(at);osc.stop(at+.2);
+                osc.onended=()=>{osc.disconnect();gain.disconnect();};
+            }); } catch {}
+        }
+
+        // Game State
+        let isPlaying = false;
+        let score = 0;
+        let highScore = 0;
+        try { highScore = Number(localStorage.getItem('orbitArchivistOverlapScore')) || 0; } catch {}
+        let paused = false;
+        let restartAllowedAt = 0;
+        let lives = 3, invulnerable = 0, bossHP = 6, won = false;
+        let phase = 'attack', phaseClock = 0, round = 0;
+        let duelTick=0, riposte=0, strikeCooldown=0, hitStop=0, duelMove=0;
+        let routeHistory=[], archiveStage=1, deferredAttack=null;
+        const duelPatterns=[
+            {name:'PURSUIT CUT',kind:'pursuit',events:[{at:45,kind:'pursuit'}],open:165,end:255},
+            {name:'CLOSING PAGES',kind:'pages',events:[],pages:{count:2,recall:[],open:[54,66],half:1.28,closing:.005,min:.60,setup:105,release:45,linger:26}},
+            {name:'RETURNING SPEARS',kind:'return',events:[{at:45,kind:'return'}],open:275,end:365}
+        ];
+        const archiveCombos=[
+            {name:'SPEARS + PURSUIT',kind:'combo',events:[{at:45,kind:'return'},{at:135,kind:'pursuit'}],open:300,end:390},
+            {name:'CLOSING PAGES',kind:'pages',events:[],pages:{count:1,recall:[0],open:[60],half:1.28,closing:.005,min:.60,setup:90,release:45,linger:26}},
+            {name:'PURSUIT CUT',kind:'pursuit',events:[{at:45,kind:'pursuit'}],open:165,end:255},
+            {name:'CLOSING PAGES',kind:'pages',events:[],pages:{count:2,recall:[],open:[64,70],half:1.20,closing:.006,min:.56,setup:90,release:36,linger:18}},
+            {name:'RETURNING SPEARS',kind:'return',events:[{at:45,kind:'return'}],open:275,end:365},
+            {name:'CLOSING PAGES',kind:'pages',events:[],pages:{count:1,recall:[0],open:[76],half:1.20,closing:.006,min:.56,setup:90,release:36,linger:18}}
+        ];
+        function currentDuel(){const list=archiveStage===1?duelPatterns:archiveCombos;return list[duelMove%list.length];}
+        function currentMoveKind(){const move=currentDuel();return (move.events.filter(e=>e.at<=duelTick).at(-1)||move.events[0])?.kind||move.kind;}
+        function duelCue(){
+            if(riposte>0)return 'CORE OPEN · E TO COUNTER';
+            if(duelTick<0)return 'THE ARCHIVIST · EVERY MOMENT HAS A COPY';
+            if(currentDuel().kind==='pages')return archivePageCue();
+            const move=currentDuel(), kind=currentMoveKind();
+            if(duelTick>=move.open)return 'RECOVERY';
+            if(archiveStage===2)return move.name;
+            if(kind==='return')return obstacles.some(o=>o.returning)?'RETURNING SPEARS · RETURN':'RETURNING SPEARS';
+            return move.name;
+        }
+        let dashFrames=0, dashCooldown=0, dashOrigin=85, dashUsed=false;
+        let bulletTime=0, bulletCooldown=0, grazeFlash=0, beamFlash=0;
+        let charge=0, volleyPower=0, weakLane=0, roundHits=0;
+        let stats={hits:0,grazes:0,dodges:0,clean:0}, record=null, resultLines=[];
+        try { record=JSON.parse(localStorage.getItem('archivistRecordsV2') || 'null'); } catch {}
+        function armDodge() {
+            if(phase!=='attack' || dashCooldown>0 || invulnerable>0) return;
+            dashFrames=9;dashCooldown=75;dashOrigin=currentRadius;dashUsed=false;
+        }
+        function perfectDodge(obs) {
+            obs.dodged=true;
+            if(dashUsed) return;
+            dashUsed=true;stats.dodges++;if(!echoChapter)riposte=Math.max(riposte,54);charge=Math.min(100,charge+25);grazeFlash=24;
+            if(bulletCooldown===0) {bulletTime=36;bulletCooldown=150;}
+            sound('perfect');addFloatText('PERFECT DODGE +25',350,250,'#b4ffff');
+            spawnBurst(currentRadius,'#ffffff');
+        }
+        function saveResult(victory) {
+            const seconds=Math.round(frameCount/6)/10;
+            const previous=record;
+            resultLines=[seconds.toFixed(1)+'s · '+stats.hits+' hits · '+stats.clean+' clean patterns',stats.grazes+' grazes · '+stats.dodges+' perfect dodges'];
+            if(victory) {
+                resultLines.push(!previous?'FIRST CLEAR':stats.hits===0?'NO-HIT CLEAR':seconds<previous.time?'NEW FASTEST CLEAR':'ARCHIVIST CLEARED');
+                if(previous)resultLines.push('Best time: '+previous.time.toFixed(1)+'s · Fewest hits: '+previous.hits);
+                record={time:Math.min(previous?.time??Infinity,seconds),hits:Math.min(previous?.hits??Infinity,stats.hits)};
+                try{localStorage.setItem('archivistRecordsV2',JSON.stringify(record));}catch{}
+            } else if(previous)resultLines.push('Best time: '+previous.time.toFixed(1)+'s · Fewest hits: '+previous.hits);
+        }
+        const attackNames = ['CROSSING ORBS', 'SPIRAL RAIN', 'BOOMERANGS', 'BROKEN HALO', 'CORE BLOOM', 'SHIFTING PINCER'];
+        const attackOrder=[0,1,4,2,5,3];
+        let battleStage=1, comboSegment=-1;
+        function baseAttackKind(){return attackOrder[round % attackOrder.length];}
+        function comboCount(){return baseAttackKind()<4?battleStage:1;}
+        function attackKind(){
+            const base=baseAttackKind();
+            if(base>=4 || battleStage===1)return base;
+            return (base+Math.min(battleStage-1,Math.floor(phaseClock/300)))%4;
+        }
+        // These are visible areas of attack, using the same geometry for drawing and damage.
+        function attackFields() {
+            if(echoChapter && storyMode==='battle')return echoAreas();
+            return [];
+            const kind = attackKind();
+            if(kind<4) return [];
+            const field = (inner, outer, start, end, hint) => ({inner, outer, start, end, hint,
+                active: phaseClock >= start && phaseClock < end,
+                visible: phaseClock >= start - 120 && phaseClock < end});
+            if (kind === 4) return [field(60,150,120,390,'CORE BLOOM · MOVE OUTWARD')];
+            return [field(60,107,120,240,'PINCER · SLIP INTO THE MIDDLE'),
+                field(153,200,120,240,'PINCER · SLIP INTO THE MIDDLE'),
+                field(60,150,360,450,'PINCER SHIFT · MOVE OUTWARD')];
+        }
+        function fieldHits(field, radius, a) {
+            if(echoChapter)return echoShapeHit(field,radius,a);
+            const opening = round * 1.7 + phaseClock * .008;
+            const difference = Math.atan2(Math.sin(a-opening), Math.cos(a-opening));
+            return field.active && radius + 9 > field.inner && radius - 9 < field.outer && Math.abs(difference) > .48;
+        }
+        document.getElementById('strike').onclick = strikeBoss;
+        function finishBattle(victory) {
+            if(echoChapter){echoFinish(victory);return;}
+            finishArchiveChallenge(victory);
+            saveResult(victory); bulletTime=0; sound(victory?'win':'lose'); victoryAge=0;
+            if(victory) {
+                obstacles=[]; pendingWaves=[];
+                for(let i=0;i<64;i++) {
+                    const a=i*Math.PI*2/64, velocity=1.5+Math.random()*3;
+                    particles.push({x:350,y:350,vx:Math.cos(a)*velocity,vy:Math.sin(a)*velocity,life:130,color:i%2?'#ffdd88':'#8affdf'});
+                }
+            }
+            won = victory; isPlaying = false; restartAllowedAt = performance.now() + 3000;
+            document.getElementById('strike').disabled = true;
+            if (score > highScore) { highScore = score; try {localStorage.setItem('orbitArchivistOverlapScore',highScore);} catch {} }
+            if(victory){storyMode='ending';storyIndex=0;showDialogue();}
+        }
+        function strikeBoss() {
+            if(echoChapter && storyMode==='battle'){echoStrike();return;}
+            if(storyMode==='tutorial') {
+                if(!paused && lesson===2 && lessonClock>=60){lessonAction=true;beamFlash=14;bossFlash=18;sound('strike');}
+                return;
+            }
+            if(!isPlaying || paused || phase!=='attack' || strikeCooldown>0)return;
+            if(riposte<=0){strikeCooldown=12;addFloatText('WAIT FOR THE OPENING',350,280,'#97aabb');return;}
+            const empowered=bulletTime>0;
+            bossHP=Math.max(0,bossHP-(empowered?.75:.5));riposte=0;strikeCooldown=24;
+            charge=0;beamFlash=14;bossFlash=18;hitStop=6;score+=empowered?150:100;
+            sound('strike');triggerShake(10);addFloatText(empowered?'PERFECT COUNTER!':'COUNTER HIT!',350,285,'#ffdd88');
+            if(bossHP<=0){phase='finisher';phaseClock=0;}
+        }
+        // Look for a reachable route, not just an empty destination. No invulnerability assumed.
+        function hasEscapeRoute(candidate) {
+            for(const lane of [0,1,2]) for(const turn of [direction,-direction]) for(const delay of [12,24]) {
+                const forecast=[...obstacles,...candidate].map(o=>({...o}));
+                let r=currentRadius,a=angle,safe=true;
+                for(let frame=0;frame<240&&safe;frame++) {
+                    const step=frame<bulletTime?.3:1;
+                    r+=((frame<delay?targetRadius:tracks[lane])-r)*.25;
+                    a+=.035*(frame<delay?direction:turn);
+                    for(const o of forecast) {
+                        if(o.dead)continue;
+                        if(o.warning>0){o.warning-=step;continue;}
+                        if(o.echo){o.age+=step*(o.replayRate||1);if(o.age>=o.path.length-1){o.dead=true;continue;}
+                            const i=Math.floor(o.age),t=o.age-i;o.angle=o.path[i].angle+(o.path[i+1].angle-o.path[i].angle)*t;
+                            o.distance=o.path[i].radius+(o.path[i+1].radius-o.path[i].radius)*t;
+                        }
+                        if(o.boomerang&&o.distance<55&&!o.returning){o.speed=-Math.abs(o.speed);o.returning=true;}
+                        if(o.returning&&o.distance>320){o.dead=true;continue;}
+                        if(o.orbital){o.life-=step;if(o.life<=0){o.dead=true;continue;}o.angle+=o.angularSpeed*step;}
+                        o.distance-=o.speed*step;
+                        if(Math.hypot(Math.cos(a)*r-Math.cos(o.angle)*o.distance,Math.sin(a)*r-Math.sin(o.angle)*o.distance)<o.size+12){safe=false;break;}
+                    }
+                }
+                if(safe)return true;
+            }
+            return false;
+        }
+        function updateBattle(timeScale) {
+            if(echoChapter){echoUpdate(timeScale);return;}
+            if(phase==='finisher'){phaseClock++;if(phaseClock>=60)finishBattle(true);return;}
+            if(currentDuel().kind==='pages'){
+                if(strikeCooldown>0)strikeCooldown--;
+                if(duelTick<0){duelTick++;return;}
+                updateArchivePage();return;
+            }
+            const previous=duelTick;duelTick+=timeScale;phaseClock=duelTick;
+            if(riposte>0)riposte--;
+            if(strikeCooldown>0)strikeCooldown--;
+            const move=currentDuel();
+            const attack=(kind)=>{
+                const r=tracks[rewardLane()];
+                const candidate=[];
+                if(kind==='pursuit') {
+                    candidate.push({orbital:true,pursuit:true,angle:angle+direction*2.8,distance:r,speed:0,size:12,type:0,
+                        angularSpeed:-direction*.012,warning:48,life:80});
+                } else {
+                    // Fixed spokes cross every lane, turn near the core and retrace their route.
+                    // Their aim is locked at windup; they never track the player after launch.
+                    const aim=angle+direction*3.3;
+                    for(const offset of [-.38,0,.38]) candidate.push({boomerang:true,angle:aim+offset,distance:290,speed:3,
+                        size:8,type:0,warning:42});
+                }
+                if(archiveStage===2 && !hasEscapeRoute(candidate))return false;
+                if(archiveStage===1)obstacles=[];
+                obstacles.push(...candidate);sound('lane');return true;
+            };
+            for(const event of move.events)if(previous<event.at && duelTick>=event.at){if(!attack(event.kind))deferredAttack={kind:event.kind,retry:duelTick+12};}
+            if(deferredAttack && duelTick>=deferredAttack.retry){
+                if(duelTick>move.open-170)deferredAttack=null;
+                else if(attack(deferredAttack.kind))deferredAttack=null;
+                else deferredAttack.retry=duelTick+12;
+            }
+            if(previous<move.open && duelTick>=move.open){obstacles=[];deferredAttack=null;if(roundHits===0)stats.clean++;riposte=Math.max(riposte,60);sound('open');}
+            if(duelTick>=move.end)advanceArchiveMove();
+        }
+        // Closing Pages share the tested trial geometry. Recalling a page restores only
+        // its spatial snapshot; health, boss damage and completed pages never rewind.
+        const ARCHIVE_RECALL_PREP=18, ARCHIVE_GATE_HALF=23, ARCHIVE_RECALL_GATE_HALF=14;
+        const archiveLaneNames=['INNER','MIDDLE','OUTER'];
+        let archivePage=null,archiveHand=1,archiveStartLane=0;
+        let archiveRecalls=0,archiveEscapes=0,archiveCompletedPages=0;
+        const archiveRecalled=new Set();
+        const archiveWrap=a=>Math.atan2(Math.sin(a),Math.cos(a));
+        const archiveXY=(a,r)=>({x:350+Math.cos(a)*r,y:350+Math.sin(a)*r});
+        function archivePageSpec(){return currentDuel().pages;}
+        function archivePageKey(index=archivePage.index){return archiveStage+':'+duelMove+':'+index;}
+        function advanceArchiveMove(){
+            duelTick=0;phaseClock=0;obstacles=[];deferredAttack=null;archivePage=null;riposte=0;
+            duelMove++;round=0;roundHits=0;
+            if(archiveStage===1&&bossHP<=3){
+                archiveStage=2;duelMove=0;duelTick=-90;
+                addFloatText('PHASE II · RECORDS INTERLOCK',350,255,'#d6a6ff');
+            }
+        }
+        function createArchivePage(index){
+            archivePage={index,phase:'preview',age:0,center:angle,
+                side:archiveHand*(index%2===0?1:-1)*(archiveStage===2?-1:1),
+                exitLane:(archiveStartLane+index+1)%3,passedGate:false,
+                replayed:archiveRecalled.has(archivePageKey(index)),saved:null,departure:null};
+        }
+        function lockArchivePage(){
+            const p=archivePage;p.center=angle;p.phase='closing';p.age=0;p.passedGate=false;
+            p.saved=Object.freeze({angle,currentRadius,currentTrack,targetRadius,direction,center:p.center,side:p.side,exitLane:p.exitLane});
+            sound('lane');
+        }
+        function recallArchivePage(){
+            const p=archivePage;
+            if(!p?.saved||archiveRecalled.has(archivePageKey()))return false;
+            archiveRecalled.add(archivePageKey());archiveRecalls++;
+            p.departure={angle,radius:currentRadius};const saved=p.saved;
+            angle=saved.angle;currentRadius=saved.currentRadius;currentTrack=saved.currentTrack;
+            targetRadius=saved.targetRadius;direction=saved.direction;
+            p.center=saved.center;p.side=saved.side;p.exitLane=saved.exitLane;
+            p.phase='rewind';p.age=0;p.passedGate=false;p.replayed=true;
+            riposte=0;dashFrames=0;particles=[];routeHistory=[];sound('recall');return true;
+        }
+        function archivePageHalf(age=archivePage?.age||0){const s=archivePageSpec();return Math.max(s.min,s.half-age*s.closing);}
+        function archiveGateOpen(age=archivePage?.age||0){return !!archivePage&&archivePage.phase==='closing'&&age>=archivePageSpec().open[archivePage.index];}
+        function archiveGateHalf(){return archivePage?.replayed?ARCHIVE_RECALL_GATE_HALF:ARCHIVE_GATE_HALF;}
+        function archivePageSegments(side,age=archivePage?.age||0){
+            if(side!==archivePage.side||!archiveGateOpen(age))return [[58,202]];
+            const r=tracks[archivePage.exitLane],half=archiveGateHalf();return [[58,r-half],[r+half,202]];
+        }
+        function archivePageHit(r=currentRadius,a=angle,age=archivePage?.age||0){
+            if(!archivePage||archivePage.phase!=='closing')return false;
+            for(const side of [-1,1]){
+                const delta=archiveWrap(a-(archivePage.center+side*archivePageHalf(age)));
+                const along=Math.cos(delta)*r,across=Math.sin(delta)*r;
+                for(const [lo,hi]of archivePageSegments(side,age)){
+                    if(Math.hypot(across,along-Math.max(lo,Math.min(hi,along)))<12)return true;
+                }
+            }return false;
+        }
+        function caughtArchivePage(){
+            if(invulnerable===0){
+                lives--;stats.hits++;noteChallengeHit();roundHits++;dashFrames=0;invulnerable=60;
+                sound('hit');triggerShake(12);spawnBurst(currentRadius,'#ff5577');
+                if(lives<=0){finishBattle(false);return;}
+            }
+            archivePage.phase='caught';archivePage.age=0;
+        }
+        function updateArchivePage(){
+            if(!archivePage){
+                // No other attack survives into the page pocket or its recalled snapshot.
+                obstacles=[];deferredAttack=null;riposte=0;bulletTime=0;dashFrames=0;
+                archiveHand=direction;archiveStartLane=currentTrack;createArchivePage(0);
+            }
+            const p=archivePage,s=archivePageSpec();duelTick++;phaseClock=duelTick;
+            if(p.phase==='opening'){
+                if(riposte>0)riposte--;
+                if(++p.age>=120)advanceArchiveMove();return;
+            }
+            if(p.phase==='preview'){
+                p.center=angle;if(++p.age>=s.setup)lockArchivePage();return;
+            }
+            if(p.phase==='rewind'){
+                if(++p.age>=ARCHIVE_RECALL_PREP){p.phase='closing';p.age=0;sound('lane');}return;
+            }
+            if(p.phase==='escaped'||p.phase==='caught'){
+                p.age++;
+                if(p.phase==='escaped'&&s.recall.includes(p.index)&&!p.replayed&&p.age>=s.linger){recallArchivePage();return;}
+                if(p.age>=s.release){
+                    const escaped=p.phase==='escaped',next=p.index+(escaped?1:0);
+                    if(escaped)archiveCompletedPages++;
+                    if(next===s.count){
+                        p.phase='opening';p.age=0;riposte=120;
+                        if(roundHits===0)stats.clean++;sound('open');
+                    }else createArchivePage(next);
+                }return;
+            }
+            p.age++;
+            if(archivePageHit()){caughtArchivePage();return;}
+            const d=archiveWrap(angle-p.center),body=Math.asin(9/currentRadius)+.03;
+            if(p.side*d<archivePageHalf()-body)p.passedGate=false;
+            if(archiveGateOpen()&&p.side*d>=archivePageHalf()&&Math.abs(currentRadius-tracks[p.exitLane])<=archiveGateHalf()-12)p.passedGate=true;
+            if(Math.abs(d)>archivePageHalf()+body){
+                if(p.passedGate&&Math.sign(d)===p.side){p.phase='escaped';p.age=0;archiveEscapes++;sound('lane');}
+                else caughtArchivePage();
+            }
+        }
+        function archivePageCue(){
+            const p=archivePage;if(!p)return 'CLOSING PAGES';
+            if(p.phase==='rewind')return 'AGAIN.';
+            if(p.phase==='escaped')return 'PAGE CLEARED';
+            if(p.phase==='caught')return 'THE PAGE CAUGHT YOU';
+            if(p.phase==='opening')return 'RECOVERY';
+            return (p.phase==='preview'?'WATCH THE EXIT':p.replayed?'RETURN PASS':'CLOSING PAGES')+' · EXIT '+(p.exitLane+1);
+        }
+        function archivePageHint(){
+            const p=archivePage,s=archivePageSpec(),exit='EXIT '+(p.exitLane+1)+' · '+archiveLaneNames[p.exitLane];
+            if(p.phase==='rewind')return 'NARROW EXIT · '+((ARCHIVE_RECALL_PREP-p.age)/60).toFixed(1)+'s · Turn or change orbit';
+            if(p.phase==='preview')return exit+' · Reverse between pages; cross when the gap turns mint';
+            if(p.phase==='closing')return archiveGateOpen()?(p.replayed?'NARROW EXIT · Line up with the mint gap':'EXIT OPEN · Cross the mint gap'):exit+' · Opens in '+((s.open[p.index]-p.age)/60).toFixed(1)+'s';
+            if(p.phase==='escaped')return 'Through the gap. Keep moving.';
+            if(p.phase==='caught')return 'Same page · Find its marked exit';
+            return 'The next record is loading.';
+        }
+        function archiveArc(r,from,to,color,width=1,reverse=false){
+            ctx.beginPath();ctx.arc(350,350,r,from,to,reverse);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke();
+        }
+        function archiveArrow(a,r,dir,color,size=7){
+            const p=archiveXY(a,r);ctx.save();ctx.translate(p.x,p.y);ctx.rotate(a+dir*Math.PI/2);ctx.fillStyle=color;
+            ctx.beginPath();ctx.moveTo(size,0);ctx.lineTo(-size*.55,-size*.55);ctx.lineTo(-size*.55,size*.55);ctx.closePath();ctx.fill();ctx.restore();
+        }
+        function drawArchivePages(){
+            const p=archivePage;if(!p||!['preview','closing','rewind'].includes(p.phase))return;
+            const preview=p.phase!=='closing',half=preview?archivePageSpec().half:archivePageHalf();
+            const open=!preview&&archiveGateOpen(),gateAngle=p.center+p.side*half,r=tracks[p.exitLane],gate=archiveXY(gateAngle,r);
+            ctx.save();tracks.forEach(track=>archiveArc(track,p.center-half,p.center+half,'#e6c29638',2));
+            for(const side of [-1,1]){
+                const a=p.center+side*half;
+                for(const [lo,hi]of archivePageSegments(side,preview?0:p.age)){
+                    const from=archiveXY(a,lo),to=archiveXY(a,hi);
+                    ctx.setLineDash(preview?[6,7]:[]);ctx.beginPath();ctx.moveTo(from.x,from.y);ctx.lineTo(to.x,to.y);
+                    ctx.strokeStyle=preview?(p.phase==='rewind'?'#c8acffa0':'#f4c285a0'):'#ffb777';ctx.lineWidth=preview?2:8;ctx.stroke();ctx.setLineDash([]);
+                    if(!preview){ctx.strokeStyle='#fff0d8';ctx.lineWidth=2;ctx.stroke();}
+                }
+                archiveArc(216,a,a-side*.25,'#efb47d80',1.5,side>0);archiveArrow(a-side*.25,216,-side,'#efb47d',6);
+            }
+            ctx.strokeStyle=open?'#9cffe0':'#9abbd0';ctx.lineWidth=2;
+            for(const edge of [-1,1]){
+                const pos=archiveXY(gateAngle,r+edge*archiveGateHalf()),dx=Math.sin(gateAngle)*7,dy=-Math.cos(gateAngle)*7;
+                ctx.beginPath();ctx.moveTo(pos.x-dx,pos.y-dy);ctx.lineTo(pos.x+dx,pos.y+dy);ctx.stroke();
+            }
+            if(open)archiveArrow(gateAngle+p.side*.16,r,p.side,'#9cffe0',8);
+            else{ctx.beginPath();ctx.arc(gate.x,gate.y,14,0,Math.PI*2);ctx.setLineDash([2,4]);ctx.stroke();ctx.setLineDash([]);}
+            const label=archiveXY(gateAngle,239);ctx.textAlign='center';ctx.font='12px Segoe UI';ctx.fillStyle=open?'#9cffe0':'#9abbd0';
+            ctx.fillText((open?'EXIT ':'SOON ')+(p.exitLane+1),label.x,Math.max(158,Math.min(550,label.y+4)));ctx.restore();
+        }
+        function drawArchiveRecall(){
+            const p=archivePage;if(p?.phase!=='rewind')return;
+            const from=archiveXY(p.departure.angle,p.departure.radius);
+            ctx.save();ctx.globalAlpha=(1-p.age/ARCHIVE_RECALL_PREP)*.5;
+            ctx.beginPath();ctx.arc(from.x,from.y,12,0,Math.PI*2);ctx.strokeStyle='#c9adff';ctx.lineWidth=1.5;ctx.stroke();ctx.restore();
+            archiveArc(45,-Math.PI/2,-Math.PI/2-Math.PI*2*(p.age/ARCHIVE_RECALL_PREP),'#d2b5ff',2,true);
+            ctx.textAlign='center';ctx.font='18px Segoe UI';ctx.fillStyle='#dfc7ff';ctx.fillText('AGAIN.',350,416);
+        }
+        function drawArchiveDirection(){
+            archiveArc(currentRadius,angle-direction*.32,angle,'#66e5ff99',3,direction<0);
+            archiveArrow(angle+direction*.24,currentRadius,direction,'#6eeaff',8);
+            ctx.textAlign='center';ctx.font='11px Segoe UI';ctx.fillStyle='#6eeaff';
+            ctx.fillText((archivePage.phase==='rewind'?'RESTORED · ':'')+(direction>0?'↻ CLOCKWISE':'↺ COUNTERCLOCKWISE'),350,144);
+        }
+        let spawnClock = 0;
+        let encounterClock = 0, encounterNumber = 0, pendingWaves = [];
+        const laneRewards = [1, 2, 3];
+        // Pay for the lane actually reached, not the requested destination.
+        function rewardLane() { return tracks.reduce((best, r, i) => Math.abs(currentRadius-r) < Math.abs(currentRadius-tracks[best]) ? i : best, 0); }
+        let powerClock = 0;
+        function togglePause() { if (!isPlaying) return; paused = !paused; document.getElementById('pause').textContent = paused ? 'Resume P' : 'Pause P'; }
+        document.getElementById('pause').onclick = togglePause;
+        document.getElementById('reverse').onclick = handleReverseAction;
+        document.querySelectorAll('#battleControls [data-lane]').forEach(b => b.onclick = () => blinkTrack(Number(b.dataset.lane)));
+        document.addEventListener('visibilitychange', () => { if (document.hidden && isPlaying && !paused) togglePause(); });
+        let multiplier = 1;
+        let comboTimer = 0;
+        let singularityEnergy = 0;
+        let isSingularityActive = false;
+        let singularityTimer = 0;
+        let chronoSlowTimer = 0;
+
+        let angle = 0;
+        let speed = 0.035; 
+        let direction = 1; 
+        
+        // Track Management (0 = Inner (1), 1 = Mid (2), 2 = Outer (3))
+        let currentTrack = 0;
+        const tracks = [85, 130, 175]; 
+        let targetRadius = tracks[0];
+        let currentRadius = tracks[0];
+
+        let obstacles = [];
+        let particles = [];
+        let powerUps = [];
+        let floatTexts = [];
+        let stars = [];
+        let frameCount = 0;
+        
+        let hasShield = false;
+        let shakeFrames = 0;
+
+        const center = {
+            x: canvas.width / 2,
+            y: canvas.height / 2
+        };
+
+        // Starfield generation with parallax depth
+        for(let i = 0; i < 120; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 2.5,
+                alpha: Math.random() * 0.7 + 0.1,
+                speed: Math.random() * 0.15 + 0.02
+            });
+        }
+
+        // Input Listeners
+        window.addEventListener('keydown', (e) => {
+            if(storyMode==='inferno'||modeTransition)return;
+            if(!document.getElementById('recordsScreen').hidden){if(e.code==='Escape'){e.preventDefault();closeRecords();}return;}
+            if(storyMode==='title')return;
+            if (e.repeat || (e.target.tagName === 'BUTTON' && e.code === 'Space')) return;
+            if (e.code === 'KeyE') { e.preventDefault(); strikeBoss(); return; }
+            if (e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); stepTrack(1); return; }
+            if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); stepTrack(-1); return; }
+            if (e.code === 'KeyP' || e.code === 'Escape') { e.preventDefault(); togglePause(); return; }
+            if (e.code === 'Space') {
+                e.preventDefault();
+                handleReverseAction();
+            } else if (e.code === 'Digit1' || e.code === 'Numpad1') {
+                e.preventDefault();
+                blinkTrack(0);
+            } else if (e.code === 'Digit2' || e.code === 'Numpad2') {
+                e.preventDefault();
+                blinkTrack(1);
+            } else if (e.code === 'Digit3' || e.code === 'Numpad3') {
+                e.preventDefault();
+                blinkTrack(2);
+            } else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+                e.preventDefault();
+                cycleTrack();
+            }
+        });
+
+        canvas.addEventListener('click', handleReverseAction);
+
+        function handleReverseAction() {
+            if(storyMode==='inferno'||modeTransition)return;
+            if(!document.getElementById('recordsScreen').hidden)return;
+            if(storyMode!=='battle' && storyMode!=='tutorial'){advanceStory();return;}
+            if (paused) return;
+            if (!isPlaying) {
+                startGame();
+            } else {
+                direction *= -1;if(echoChapter)echoTurnFlash=20;
+                if(storyMode==='tutorial' && lesson===0)lessonAction=true; 
+                sound('reverse');
+                spawnBurst(currentRadius, isSingularityActive ? '#ff00ff' : '#00f3ff');
+            }
+        }
+
+        function setTrack(trackIndex) {
+            if (!isPlaying || paused) return;
+            if (currentTrack !== trackIndex) {
+                if(!echoChapter)armDodge();
+                sound('lane');
+                currentTrack = trackIndex;
+                if(storyMode==='tutorial' && lesson===1)lessonAction=true;
+                targetRadius = tracks[currentTrack];
+                spawnBurst(targetRadius, '#00ffcc');
+                addFloatText(`LANE ${currentTrack + 1}`, center.x + Math.cos(angle) * currentRadius, center.y + Math.sin(angle) * currentRadius, "#00ffcc");
+            }
+        }
+
+        function blinkTrack(index){
+            if(!isPlaying||paused)return;setTrack(index);currentRadius=targetRadius;
+        }
+        function cycleTrack() { setTrack((currentTrack+1)%tracks.length); }
+        function stepTrack(delta) {
+            setTrack(Math.max(0, Math.min(tracks.length-1, currentTrack+delta)));
+        }
+
+        function spawnBurst(r, color) {
+            for (let i = 0; i < 8; i++) {
+                let pAngle = angle + (Math.random() - 0.5) * 1.5;
+                particles.push({
+                    x: center.x + Math.cos(angle) * r,
+                    y: center.y + Math.sin(angle) * r,
+                    vx: Math.cos(pAngle) * (Math.random() * 4 + 1),
+                    vy: Math.sin(pAngle) * (Math.random() * 4 + 1),
+                    life: 22,
+                    color: color
+                });
+            }
+        }
+
+        function startBattle(trackArchive=true) {
+            if (performance.now() < restartAllowedAt) return;
+            if(trackArchive)beginArchiveChallenge();
+            unlockAudio(); sound('start'); bossFlash=0; victoryAge=0;
+            restartAllowedAt = 0;
+            routeHistory=[];archiveStage=1;deferredAttack=null;duelTick=-90;riposte=0;strikeCooldown=0;hitStop=0;duelMove=0;
+            archivePage=null;archiveRecalls=0;archiveEscapes=0;archiveCompletedPages=0;archiveRecalled.clear();
+            dashFrames=0;dashCooldown=0;dashUsed=false;bulletTime=0;bulletCooldown=0;
+            grazeFlash=0;beamFlash=0;charge=0;volleyPower=0;roundHits=0;resultLines=[];
+            stats={hits:0,grazes:0,dodges:0,clean:0};
+            lives=3; invulnerable=0; bossHP=6; won=false; phase='attack'; phaseClock=0; round=0;
+            battleStage=1;comboSegment=-1;
+            document.getElementById('strike').disabled=true;
+            isPlaying = true;
+            paused = false; spawnClock = 0; powerClock = 0;
+            encounterClock = 0; encounterNumber = 0; pendingWaves = [];
+            document.getElementById('pause').textContent = 'Pause P';
+            score = 0;
+            multiplier = 1;
+            comboTimer = 0;
+            singularityEnergy = 0;
+            isSingularityActive = false;
+            singularityTimer = 0;
+            chronoSlowTimer = 0;
+            obstacles = [];
+            particles = [];
+            powerUps = [];
+            floatTexts = [];
+            speed = 0.035;
+            direction = 1;
+            angle = 0;
+            frameCount = 0;
+            hasShield = false;
+            shakeFrames = 0;
+            currentTrack = 0;
+            targetRadius = tracks[0];
+            currentRadius = tracks[0];
+        }
+
+        function spawnObstacle() {
+            const spawnAngle = Math.random() * Math.PI * 2;
+            let typeRand = Math.random();
+            let type = typeRand < 0.55 ? 0 : (typeRand < 0.85 ? 1 : 2); 
+            let targetTrackIndex = Math.floor(Math.random() * tracks.length);
+            
+            obstacles.push({
+                angle: spawnAngle,
+                distance: 350, 
+                speed: (1.3 + Math.random() * 1.1),
+                size: 7 + Math.random() * 4,
+                type: type,
+                trackIndex: targetTrackIndex,
+                waveOffset: Math.random() * Math.PI
+            });
+        }
+
+        function spawnPowerUp() {
+            const spawnAngle = Math.random() * Math.PI * 2;
+            let isChrono = Math.random() > 0.5;
+            powerUps.push({
+                angle: spawnAngle,
+                distance: 350,
+                speed: 1.1,
+                size: 11,
+                trackIndex: Math.floor(Math.random() * tracks.length),
+                type: isChrono ? 'chrono' : 'shield'
+            });
+        }
+
+        function planEncounter() {
+            const base = Math.random() * Math.PI * 2;
+            const double = encounterNumber++ % 2 === 1;
+            const makeWave = (a, delay, label) => {
+                const angles = [];
+                // A broad fan with a generous central opening and open space behind it.
+                for (let i = -5; i <= 5; i++) if (Math.abs(i) > 1) angles.push(a + i * 0.23);
+                pendingWaves.push({ angles, gap: a, delay, label });
+            };
+            makeWave(base, 100, double ? 'DOUBLE WAVE · 1 / 2' : 'FAN WAVE · FIND THE GAP');
+            if (double) makeWave(base + 0.7, 170, 'DOUBLE WAVE · 2 / 2');
+        }
+
+        function updateEncounters(timeScale) {
+            encounterClock += timeScale;
+            // Let existing random traffic clear before each announced encounter.
+            if (encounterClock >= 720) {
+                encounterClock = 0;
+                planEncounter();
+            }
+            for (let i = pendingWaves.length - 1; i >= 0; i--) {
+                const wave = pendingWaves[i];
+                wave.delay -= timeScale;
+                if (wave.delay <= 0) {
+                    for (const a of wave.angles) obstacles.push({angle:a, distance:310, speed:1.8, size:8, type:2, waveOffset:0, formation:true});
+                    pendingWaves.splice(i, 1);
+                }
+            }
+        }
+
+        function addFloatText(text, x, y, color) {
+            floatTexts.push({ text, x, y, alpha: 1.0, color });
+        }
+
+        function triggerShake(frames) {
+            shakeFrames = frames;
+        }
+
+        function update() {
+            if(storyMode==='finale'){updateFinale();return;}
+            if(storyMode==='tutorial'){updateLesson();return;}
+            if(storyMode!=='battle')return;
+            if (!isPlaying || paused) return;
+            if (phase==='finisher') { updateBattle(1); return; }
+            if(hitStop>0){hitStop--;return;}
+
+            if(phase!=='finisher')frameCount++;
+            if(dashCooldown>0)dashCooldown--;
+            if(bulletCooldown>0)bulletCooldown--;
+            if(bulletTime>0)bulletTime--;
+            if(grazeFlash>0)grazeFlash--;
+            if(beamFlash>0)beamFlash--;
+            if(audioBus&&!muted)audioBus.gain.value=bulletTime>0?.16:.3;
+            if (invulnerable > 0) invulnerable--;
+
+            currentRadius += (targetRadius - currentRadius) * 0.25;
+
+            if (isSingularityActive) {
+                singularityTimer--;
+                if (singularityTimer <= 0) {
+                    isSingularityActive = false;
+                    addFloatText("SINGULARITY ENDED", center.x, center.y - 75, "#ff00ff");
+                }
+            }
+
+            if (chronoSlowTimer > 0) {
+                chronoSlowTimer--;
+            }
+
+            if (comboTimer > 0) {
+                comboTimer--;
+                if (comboTimer === 0) multiplier = 1;
+            }
+
+            let laneBonus = laneRewards[rewardLane()];
+            let activeMultiplier = (isSingularityActive ? multiplier * 2 : multiplier) * laneBonus;
+            if (frameCount % 10 === 0) {
+                score += activeMultiplier;
+            }
+
+            // Difficulty follows survival time so high rewards do not punish risk taking.
+            let targetSpeed = 0.035 + Math.min(round * 0.002, 0.014);
+            let timeFactor = bulletTime>0 ? 0.3 : 1;
+            speed = targetSpeed;
+
+            if(echoChapter||archivePage?.phase!=='rewind')angle += speed * direction;
+
+            if(phase==='attack') {
+                routeHistory.push({angle,radius:currentRadius});
+                if(routeHistory.length>120)routeHistory.shift();
+            }
+            updateBattle(timeFactor * (isSingularityActive ? 0.6 : 1));
+            if(!isPlaying)return;
+
+            let playerX = center.x + Math.cos(angle) * currentRadius;
+            let playerY = center.y + Math.sin(angle) * currentRadius;
+
+            if (invulnerable === 0 && attackFields().some(f => fieldHits(f, currentRadius, angle))) {
+                lives--; stats.hits++;noteChallengeHit();roundHits++;dashFrames=0; invulnerable=echoChapter?60:150; triggerShake(18); sound('hit');
+                spawnBurst(currentRadius,'#ff5577');
+                addFloatText('HIT · RECOVERING',playerX,playerY-25,'#ff8899');
+                if (lives <= 0) { finishBattle(false); return; }
+            }
+
+            if (frameCount % 2 === 0) {
+                particles.push({
+                    x: playerX,
+                    y: playerY,
+                    vx: (Math.random() - 0.5) * 0.4,
+                    vy: (Math.random() - 0.5) * 0.4,
+                    life: 25,
+                    color: isSingularityActive ? '#ff00ff' : (hasShield ? '#00ff66' : '#00f3ff')
+                });
+            }
+
+            // Update Obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                const enemyStep = timeFactor;
+                if(obs.warning>0) {obs.warning-=enemyStep;continue;}
+                if(obs.echo) {
+                    obs.age+=enemyStep*(obs.replayRate||1);
+                    if(obs.age>=obs.path.length-1){obstacles.splice(i,1);continue;}
+                    const index=Math.floor(obs.age),t=obs.age-index;
+                    const from=obs.path[index],to=obs.path[index+1];
+                    obs.angle=from.angle+(to.angle-from.angle)*t;
+                    obs.distance=from.radius+(to.radius-from.radius)*t;
+                }
+                if(obs.spin)obs.angle+=obs.spin*enemyStep;
+                if(obs.boomerang && obs.distance<55 && !obs.returning){
+                    obs.speed=-Math.abs(obs.speed);obs.returning=true;sound('lane');
+                }
+                if(obs.returning && obs.distance>320){obstacles.splice(i,1);continue;}
+                if (obs.orbital) {
+                    const step = timeFactor * (isSingularityActive ? 0.6 : 1);
+                    obs.life -= step;
+                    if (obs.life <= 0) { obstacles.splice(i,1); continue; }
+                    if (obs.warning > 0) { obs.warning -= step; continue; }
+                    obs.angle += obs.angularSpeed * step;
+                }
+                obs.distance -= obs.speed * timeFactor * (isSingularityActive ? 0.6 : 1);
+
+                let currentAngle = obs.angle;
+                if (obs.type === 1) {
+                    currentAngle += Math.sin(frameCount * 0.12 + obs.waveOffset) * 0.2;
+                }
+
+                let obsTrackRadius = tracks[obs.trackIndex];
+                let obsX = center.x + Math.cos(currentAngle) * obs.distance;
+                let obsY = center.y + Math.sin(currentAngle) * obs.distance;
+
+                let onSameTrack = Math.abs(currentRadius - obsTrackRadius) < 18;
+                let distToPlayer = Math.hypot(playerX - obsX, playerY - obsY);
+
+                const originDistance=Math.hypot(center.x+Math.cos(angle)*dashOrigin-obsX,center.y+Math.sin(angle)*dashOrigin-obsY);
+                if(phase==='attack' && invulnerable===0 && dashFrames>0 && !obs.dodged &&
+                    (distToPlayer<9+obs.size || originDistance<9+obs.size)) perfectDodge(obs);
+                if(obs.dodged) { obstacles.splice(i,1); continue; }
+                if (phase === 'attack' && invulnerable === 0 && dashFrames===0 && !obs.dodged && distToPlayer < 9 + obs.size) {
+                    if (hasShield) {
+                        hasShield = false;
+                        triggerShake(12);
+                        addFloatText("SHIELD ABSORBED HIT", playerX, playerY - 20, "#ff0055");
+                        obstacles.splice(i, 1);
+                        continue;
+                    } else {
+                        lives--; stats.hits++;noteChallengeHit();roundHits++;dashFrames=0; invulnerable=echoChapter?60:150; triggerShake(18); sound('hit');
+                        spawnBurst(currentRadius,'#ff5577');
+                        obstacles.splice(i,1);
+                        addFloatText(lives > 0 ? 'HIT · '+lives+' LIVES LEFT' : 'SIGNAL LOST',playerX,playerY-25,'#ff8899');
+                        if (lives <= 0) { finishBattle(false); return; }
+                        continue;
+                    }
+                }
+
+                if (phase==='attack' && invulnerable===0 && !obs.dodged && !obs.grazed && distToPlayer >= 9 + obs.size && distToPlayer < 34 + obs.size) {
+                    obs.grazed = true;
+                    score += 15 * activeMultiplier;
+                    charge=Math.min(100,charge+10);stats.grazes++;grazeFlash=15;sound('graze');
+                    for(let n=0;n<6;n++) particles.push({x:playerX+(obsX-playerX)*n/6,y:playerY+(obsY-playerY)*n/6,vx:0,vy:0,life:12,color:'#aaffef'});
+                    addFloatText('GRAZE +10 ENERGY', playerX, playerY - 24, '#ffdd88');
+                }
+                if (obs.distance < 12) {
+                    obstacles.splice(i, 1);
+                    multiplier = Math.min(multiplier + 1, 5);
+                    comboTimer = 85; 
+
+                    if (!isSingularityActive) {
+                        singularityEnergy = Math.min(100, singularityEnergy + 4);
+                        if (singularityEnergy >= 100) {
+                            singularityEnergy = 0;
+                            isSingularityActive = true;
+                            singularityTimer = 260; 
+                            triggerShake(18);
+                            addFloatText("SINGULARITY · DOUBLE SCORE", center.x, center.y - 75, "#ff00ff");
+                        }
+                    }
+                }
+            }
+
+            if(dashFrames>0)dashFrames--;
+            // Update Power-ups
+            for (let i = powerUps.length - 1; i >= 0; i--) {
+                let pu = powerUps[i];
+                pu.distance -= pu.speed * timeFactor * (isSingularityActive ? 0.6 : 1);
+
+                let puTrackRadius = tracks[pu.trackIndex];
+                let puX = center.x + Math.cos(pu.angle) * pu.distance;
+                let puY = center.y + Math.sin(pu.angle) * pu.distance;
+
+                if (Math.hypot(playerX - puX, playerY - puY) < 18) {
+                    if (pu.type === 'shield') {
+                        hasShield = true;
+                        addFloatText("SHIELD ONLINE", playerX, playerY - 20, "#00ff66");
+                    } else {
+                        chronoSlowTimer = 220; 
+                        addFloatText("TIME SLOW", playerX, playerY - 20, "#00ffff");
+                    }
+                    powerUps.splice(i, 1);
+                } else if (pu.distance < 10) {
+                    powerUps.splice(i, 1);
+                }
+            }
+
+        }
+
+        function updateEffects() {
+            if(bossFlash>0)bossFlash--;
+            if(won)victoryAge++;
+            // Update Particles & Text
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let pt = particles[i];
+                pt.x += pt.vx;
+                pt.y += pt.vy;
+                pt.life--;
+                if (pt.life <= 0) particles.splice(i, 1);
+            }
+
+            for (let i = floatTexts.length - 1; i >= 0; i--) {
+                let ft = floatTexts[i];
+                ft.y -= 0.9;
+                ft.alpha -= 0.02;
+                if (ft.alpha <= 0) floatTexts.splice(i, 1);
+            }
+        }
+
+        function draw() {
+            if(storyMode!=='battle'){drawStory();return;}
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            
+            if (shakeFrames > 0) {
+                shakeFrames--;
+                let offsetX = (Math.random() - 0.5) * 10;
+                let offsetY = (Math.random() - 0.5) * 10;
+                ctx.translate(offsetX, offsetY);
+            }
+
+            // Draw Background Stars
+            for (let st of stars) {
+                st.alpha += (Math.random() - 0.5) * 0.05;
+                if (st.alpha < 0.1) st.alpha = 0.1;
+                if (st.alpha > 0.8) st.alpha = 0.8;
+                
+                ctx.beginPath();
+                ctx.arc(st.x, st.y, st.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${st.alpha})`;
+                ctx.fill();
+            }
+
+            drawBossEmblem();
+
+            // Draw Orbital Tracks with Lane Numbers [1], [2], [3]
+            tracks.forEach((r, idx) => {
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, r, 0, Math.PI * 2);
+                let isActiveTrack = tracks[currentTrack] === r;
+                ctx.strokeStyle = isActiveTrack 
+                    ? (isSingularityActive ? 'rgba(255, 0, 255, 0.6)' : 'rgba(0, 243, 255, 0.5)')
+                    : 'rgba(255, 255, 255, 0.06)';
+                ctx.lineWidth = isActiveTrack ? 3.5 : 1;
+                ctx.stroke();
+
+                // Draw Lane Number indicator on the right side of the track circle
+                ctx.fillStyle = isActiveTrack ? (isSingularityActive ? '#ff00ff' : '#00f3ff') : 'rgba(255, 255, 255, 0.2)';
+                ctx.font = isActiveTrack ? 'bold 12px Segoe UI' : '10px Segoe UI';
+                ctx.textAlign = 'left';
+                ctx.fillText(`[${idx + 1}]`, center.x + r + 6, center.y + 4);
+            });
+
+            // Sector attacks leave an angular escape route as well as a clear radial refuge.
+            for (const field of attackFields().filter(f=>f.visible&&!echoChapter)) {
+                const opening=echoChapter?field.opening:round*1.7+phaseClock*.008;
+                const fieldGap=echoChapter?field.gap:.48;
+                ctx.save(); ctx.beginPath();
+                ctx.arc(350,350,field.outer,opening+fieldGap,opening+Math.PI*2-fieldGap);
+                ctx.arc(350,350,field.inner,opening+Math.PI*2-fieldGap,opening+fieldGap,true);
+                ctx.closePath();
+                ctx.fillStyle=field.active?'rgba(255,60,100,.32)':'rgba(255,190,80,.09)';ctx.fill();
+                ctx.strokeStyle=field.active?'#ff5577':'#ffcd80';ctx.lineWidth=2;
+                if(!field.active)ctx.setLineDash([6,8]);ctx.stroke();
+                if(field.active) {
+                    ctx.clip();ctx.strokeStyle='rgba(255,130,150,.35)';ctx.lineWidth=1;
+                    for(let x=100;x<800;x+=18){ctx.beginPath();ctx.moveTo(x,100);ctx.lineTo(x-500,600);ctx.stroke();}
+                }
+                ctx.restore();
+            }
+            if(echoChapter)drawEchoAttacks();else drawArchivePages();
+            const visibleField=echoChapter?null:attackFields().find(f=>f.visible);
+            if(isPlaying && visibleField) {
+                ctx.textAlign='center';ctx.font='bold 14px Segoe UI';ctx.fillStyle=visibleField.active?'#ff8899':'#ffdd88';
+                ctx.fillText(visibleField.hint,350,565);
+                ctx.font='12px Segoe UI';ctx.fillText(visibleField.active?'UNBLOCKABLE · Dodge through the opening, never the red area':'UNBLOCKABLE · Move before the amber outline turns red',350,584);
+            }
+            // Draw Particles
+            for (const wave of pendingWaves) {
+                ctx.save();
+                ctx.strokeStyle = 'rgba(255,170,80,0.45)';
+                ctx.setLineDash([5, 9]); ctx.lineWidth = 1;
+                for (const a of wave.angles) {
+                    ctx.beginPath();
+                    ctx.moveTo(center.x + Math.cos(a)*65, center.y + Math.sin(a)*65);
+                    ctx.lineTo(center.x + Math.cos(a)*310, center.y + Math.sin(a)*310);
+                    ctx.stroke();
+                }
+                ctx.setLineDash([]); ctx.strokeStyle = '#7effcd'; ctx.lineWidth = 3;
+                if(wave.gap !== null) { ctx.beginPath(); ctx.arc(center.x, center.y, 225, wave.gap-0.3, wave.gap+0.3); ctx.stroke(); }
+                ctx.restore();
+            }
+            if (pendingWaves.length) {
+                const next = pendingWaves.reduce((a,b)=>a.delay<b.delay?a:b);
+                ctx.textAlign='center'; ctx.font='bold 15px Segoe UI'; ctx.fillStyle='#ffcc88';
+                ctx.fillText(next.label,350,610);
+                ctx.font='12px Segoe UI'; ctx.fillText('Dashed paths warn of incoming fire · Keep moving',350,632);
+            }
+            for (let pt of particles) {
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, Math.max(1, pt.life * 0.15), 0, Math.PI * 2);
+                ctx.fillStyle = pt.color;
+                ctx.globalAlpha = pt.life / 50;
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+
+            // Draw Power-Ups
+            for (let pu of powerUps) {
+                let puTrackRadius = tracks[pu.trackIndex];
+                let puX = center.x + Math.cos(pu.angle) * pu.distance;
+                let puY = center.y + Math.sin(pu.angle) * pu.distance;
+
+                ctx.beginPath();
+                ctx.arc(puX, puY, pu.size, 0, Math.PI * 2);
+                ctx.fillStyle = pu.type === 'shield' ? '#00ff66' : '#00ffff';
+                ctx.shadowBlur = 14;
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = '#00151a'; ctx.font = 'bold 16px Segoe UI'; ctx.textAlign = 'center';
+                ctx.fillText(pu.type === 'shield' ? '+' : '◷', puX, puY + 5);
+            }
+
+            // Draw Obstacles
+            for (let obs of obstacles) {
+                let currentAngle = obs.angle;
+                if (obs.type === 1) currentAngle += Math.sin(frameCount * 0.12 + obs.waveOffset) * 0.2;
+                
+                let obsTrackRadius = tracks[obs.trackIndex];
+                let obsX = center.x + Math.cos(currentAngle) * obs.distance;
+                let obsY = center.y + Math.sin(currentAngle) * obs.distance;
+
+                if(obs.echo) {
+                    ctx.save();ctx.lineWidth=2;ctx.strokeStyle=obs.warning>0?'rgba(202,155,255,.55)':'rgba(202,155,255,.16)';
+                    ctx.setLineDash([4,7]);ctx.beginPath();
+                    obs.path.forEach((p,i)=>{const x=350+Math.cos(p.angle)*p.radius,y=350+Math.sin(p.angle)*p.radius;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();ctx.setLineDash([]);
+                    ctx.translate(obsX,obsY);ctx.rotate(Math.PI/4);ctx.strokeStyle='#e2baff';ctx.fillStyle='#be7aff';
+                    if(obs.warning>0)ctx.strokeRect(-8,-8,16,16);else{ctx.shadowBlur=16;ctx.shadowColor='#be7aff';ctx.fillRect(-8,-8,16,16);}
+                    ctx.restore();continue;
+                }
+                if(obs.pursuit) {
+                    ctx.save();
+                    ctx.strokeStyle=obs.warning>0?'rgba(255,175,205,.65)':'rgba(255,95,160,.28)';
+                    ctx.lineWidth=2;ctx.setLineDash(obs.warning>0?[6,7]:[]);
+                    ctx.beginPath();ctx.arc(350,350,obs.distance,0,Math.PI*2);ctx.stroke();
+                    ctx.setLineDash([]);
+                    if(obs.warning<=0) {
+                        ctx.strokeStyle='rgba(255,90,165,.55)';ctx.lineWidth=5;
+                        const tail=obs.angle-Math.sign(obs.angularSpeed)*.55;
+                        ctx.beginPath();ctx.arc(350,350,obs.distance,tail,obs.angle,obs.angularSpeed<0);ctx.stroke();
+                    }
+                    ctx.translate(obsX,obsY);ctx.rotate(obs.angle+(obs.angularSpeed>0?Math.PI/2:-Math.PI/2));
+                    ctx.beginPath();ctx.moveTo(16,0);ctx.lineTo(-10,-9);ctx.lineTo(-4,0);ctx.lineTo(-10,9);ctx.closePath();
+                    ctx.strokeStyle=obs.warning>0?'#ffd3e6':'#ffffff';ctx.fillStyle='#ff579b';ctx.lineWidth=2;
+                    if(obs.warning>0)ctx.stroke();else{ctx.fill();ctx.stroke();}
+                    ctx.restore();
+                    if(obs.warning>0){ctx.textAlign='center';ctx.fillStyle='#ffb4d0';ctx.font='bold 12px Segoe UI';ctx.fillText('LANE LOCKED',350,560);}
+                    continue;
+                }
+                if(obs.boomerang) {
+                    ctx.save();ctx.strokeStyle=obs.returning?'rgba(100,220,255,.35)':'rgba(255,190,100,.3)';
+                    ctx.lineWidth=1;ctx.setLineDash([4,8]);ctx.beginPath();
+                    ctx.moveTo(350+Math.cos(obs.angle)*50,350+Math.sin(obs.angle)*50);
+                    ctx.lineTo(350+Math.cos(obs.angle)*320,350+Math.sin(obs.angle)*320);ctx.stroke();
+                    ctx.setLineDash([]);ctx.translate(obsX,obsY);ctx.rotate(obs.angle+(obs.returning?0:Math.PI));
+                    ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(-8,-7);ctx.lineTo(-4,0);ctx.lineTo(-8,7);ctx.closePath();
+                    ctx.strokeStyle=obs.returning?'#87eaff':'#ffc477';ctx.fillStyle=ctx.strokeStyle;ctx.lineWidth=2;
+                    if(obs.warning>0)ctx.stroke();else ctx.fill();ctx.restore();continue;
+                }
+
+                ctx.beginPath();
+                ctx.arc(obsX, obsY, obs.size, 0, Math.PI * 2);
+                if (obs.warning > 0) {
+                    ctx.strokeStyle='#ffdd88'; ctx.lineWidth=2; ctx.stroke();
+                    ctx.beginPath();ctx.arc(obsX,obsY,14,0,Math.PI*2);ctx.stroke();
+                    continue;
+                }
+                ctx.fillStyle = obs.type === 1 ? '#bf00ff' : (obs.type === 2 ? '#ff3366' : '#ffaa00');
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = ctx.fillStyle;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+
+            if(phase==='barrage') {
+                ctx.beginPath();ctx.arc(350,350,tracks[weakLane],0,Math.PI*2);ctx.strokeStyle='#ffdd66';ctx.lineWidth=5;ctx.stroke();
+            }
+            // Draw Player Ship
+            let playerX = center.x + Math.cos(angle) * currentRadius;
+            let playerY = center.y + Math.sin(angle) * currentRadius;
+
+            ctx.beginPath();
+            ctx.arc(playerX, playerY, 10, 0, Math.PI * 2);
+            ctx.fillStyle = isSingularityActive ? '#ff00ff' : '#00f3ff';
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = ctx.fillStyle;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            if(echoChapter){drawEchoDirection();drawEchoLockFlash();}else if(archivePage){drawArchiveDirection();drawArchiveRecall();}
+            ctx.beginPath();ctx.arc(playerX,playerY,34,0,Math.PI*2);
+            ctx.strokeStyle=grazeFlash>0?'#ffffff':dashFrames>0?'#aaffff':'rgba(130,255,240,.2)';ctx.lineWidth=grazeFlash>0?2:1;ctx.stroke();
+            if(beamFlash>0 || phase==='finisher') {
+                ctx.beginPath();ctx.moveTo(playerX,playerY);ctx.lineTo(350,350);ctx.strokeStyle='#fff3bd';ctx.lineWidth=phase==='finisher'?8:3;ctx.stroke();
+            }
+            if (invulnerable > 0) {
+                ctx.beginPath(); ctx.arc(playerX,playerY,19,0,Math.PI*2);
+                ctx.strokeStyle = frameCount%12<6 ? '#ffffff' : '#ff5577'; ctx.lineWidth=2; ctx.stroke();
+            }
+            // Draw Shield Bubble
+            if (hasShield) {
+                ctx.beginPath();
+                ctx.arc(playerX, playerY, 17, 0, Math.PI * 2);
+                ctx.strokeStyle = '#00ff66';
+                ctx.lineWidth = 2.5;
+                ctx.shadowBlur = 14;
+                ctx.shadowColor = '#00ff66';
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+
+            // Draw Floating Text Popups
+            for (let ft of floatTexts) {
+                ctx.save();
+                ctx.globalAlpha = ft.alpha;
+                ctx.fillStyle = ft.color;
+                ctx.font = 'bold 14px Segoe UI';
+                ctx.textAlign = 'center';
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+            }
+
+            drawBattleHeading();
+            if(isPlaying){ctx.textAlign='center';ctx.font='bold 18px Segoe UI';ctx.fillStyle=echoChapter?echoCueColor():riposte>0?'#ffdd88':'#9abcca';ctx.fillText(echoChapter?echoCue():duelCue(),350,echoChapter?577:610);
+                ctx.font='12px Segoe UI';if(riposte>0)ctx.fillText('PRESS E · '+(riposte/60).toFixed(1)+'s',350,echoChapter?602:638);else if(echoChapter)ctx.fillText(echoHint(),350,602);else if(archivePage)ctx.fillText(archivePageHint(),350,638);}
+            ctx.textAlign='right';ctx.font='12px Segoe UI';ctx.fillStyle='#aadddd';
+            
+            if(bulletTime>0) {ctx.fillStyle='rgba(65,180,220,.08)';ctx.fillRect(0,0,700,700);}
+            if (paused) {
+                ctx.fillStyle = 'rgba(1,1,3,.82)'; ctx.fillRect(0,0,700,700);
+                ctx.textAlign = 'center'; ctx.fillStyle = '#b9faff'; ctx.font = 'bold 32px Segoe UI';
+                ctx.fillText('PAUSED',350,335); ctx.font = '16px Segoe UI'; ctx.fillText('Press P or click Resume',350,375);
+            }
+            // Game Over / Start Screen Overlay
+            if (!isPlaying) {
+                ctx.fillStyle = won ? 'rgba(1, 1, 3, 0.65)' : 'rgba(1, 1, 3, 0.9)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                if(won) {
+                    const progress=Math.min(victoryAge/110,1);
+                    ctx.save();ctx.strokeStyle='#8affdf';ctx.globalAlpha=1-progress;
+                    ctx.lineWidth=4;ctx.beginPath();ctx.arc(350,350,35+progress*280,0,Math.PI*2);ctx.stroke();ctx.restore();
+                }
+
+                ctx.fillStyle = '#00f3ff';
+                ctx.font = 'bold 42px Segoe UI';
+                ctx.textAlign = 'center';
+                ctx.shadowBlur = 25;
+                ctx.shadowColor = '#00f3ff';
+                ctx.fillText(won ? 'ARCHIVIST DEFEATED' : 'SIGNAL LOST', center.x, center.y - 45);
+                ctx.shadowBlur = 0;
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '16px Segoe UI';
+                if (restartAllowedAt > 0) {
+                    ctx.fillText(`${won ? 'Signal restored. You survived.' : 'Signal lost. Learn its patterns. Try again.'}`, center.x, center.y - 5);
+                    ctx.fillStyle = '#00ffcc';
+                    ctx.font = 'bold 18px Segoe UI';
+                    ctx.fillText(`Final Score: ${score}`, center.x, center.y + 25);
+                    ctx.fillStyle = '#93a8c5';
+                    ctx.font = '15px Segoe UI';
+                    ctx.font='14px Segoe UI';
+                    resultLines.forEach((line,i)=>ctx.fillText(line,350,450+i*23));
+                    const remaining = Math.max(0, Math.ceil((restartAllowedAt - performance.now()) / 1000));
+                    ctx.fillText(remaining > 0 ? `Ready in ${remaining}...` : 'Click / Space · Retry Chapter II with 3 lives', center.x, center.y + 60);
+                } else {
+                    ctx.fillText('Click / Space · Retry Chapter II', center.x, center.y + 20);
+                }
+            }
+
+            document.getElementById('strike').disabled = !isPlaying || paused || phase !== 'attack' || riposte<=0 || strikeCooldown>0;
+            ctx.restore();
+        }
+
+
+        let echoChapter=false,echoBlock=0,echoClock=0,echoDeaths=0,echoFields=[],echoQueue=[],echoOpening=false,echoClear=false;
+        let echoAnchor=null,echoPart=0,echoState='warning',echoActive=0,echoTicks=0,echoGap=0,echoVelocity=0,echoRings=[],echoMarked=1,echoLocked=null,echoCutAge=0,echoCutsDone=false,echoTurnFlash=0,echoLockFlash=0;
+        const echoStageNames=['LEARN','CHAIN','OVERLAP'];
+        const echoWall={warning:108,wall:{gap:.65,rotation:.016,duration:330}};
+        const echoRing={warning:72,rings:{gap:.47,speed:2,spacing:64,count:3,shift:1.10}};
+        const echoCut={warning:54,cut:{track:48,lock:27,cut:30,recover:24,count:3}};
+        const echoCombo={warning:108,wall:{gap:.60,rotation:-.016,duration:450},cut:{track:54,lock:30,cut:30,recover:30,count:3}};
+        const echoMoves=[
+            {name:'ROTATING GAP',stage:1,parts:[echoWall]},
+            {name:'STAGGERED RINGS',stage:1,parts:[echoRing]},
+            {name:'LOCKED CUT',stage:1,parts:[echoCut]},
+            {name:'GAP → RINGS',stage:2,parts:[echoWall,echoRing]},
+            {name:'RINGS → CUT → GAP',stage:2,parts:[echoRing,echoCut,echoWall]},
+            {name:'ROTATING GAP + LOCKED CUT',stage:3,parts:[echoCombo]}
+        ];
+        try{
+            const saved=JSON.parse(localStorage.getItem('echoAnchorV4')||'null');
+            if(saved&&[0,3,5].includes(saved.block)&&Number.isInteger(saved.lives)&&saved.lives>=1&&saved.lives<=3)echoAnchor=saved;
+            else{
+                const old=JSON.parse(localStorage.getItem('echoAnchorV3')||'null');
+                if(old&&[0,8,11].includes(old.block)&&Number.isInteger(old.lives)&&old.lives>=1&&old.lives<=3)echoAnchor={block:old.block===0?0:old.block===8?3:5,lives:old.lives};
+            }
+        }catch{}
+        function echoPlan(){return echoMoves[echoBlock];}
+        function echoSegment(){return echoPlan().parts[echoPart];}
+        function echoStageStart(index=echoBlock){return index<3?0:index<5?3:5;}
+        function persistEcho(){echoAnchor={block:echoStageStart(),lives};try{localStorage.setItem('echoAnchorV4',JSON.stringify(echoAnchor));}catch{}}
+        function echoNearest(){return tracks.reduce((best,r,i)=>Math.abs(currentRadius-r)<Math.abs(currentRadius-tracks[best])?i:best,0);}
+        function echoCutPhase(){
+            const spec=echoSegment().cut;if(!spec||echoCutsDone)return 'recover';
+            return echoCutAge<spec.track?'tracking':echoCutAge<spec.track+spec.lock?'locked':echoCutAge<spec.track+spec.lock+spec.cut?'cut':'recover';
+        }
+        function beginEchoPart(){
+            const plan=echoSegment();echoState='warning';echoTicks=0;echoActive=0;echoRings=[];echoMarked=echoNearest();echoLocked=null;echoCutAge=0;echoCutsDone=false;echoLockFlash=0;
+            if(plan.wall){echoVelocity=plan.wall.rotation;echoGap=angle+(.035*direction-echoVelocity)*plan.warning;}
+            if(plan.rings){const spec=plan.rings,first=angle+direction*1.15;
+                echoRings=Array.from({length:spec.count},(_,i)=>({radius:300,gap:first+direction*(i%2?spec.shift:0),delay:i*spec.spacing,active:false,passed:false,index:i}));}
+        }
+        function resetEchoSequence(){
+            echoClock=0;echoFields=[];echoQueue=[];echoOpening=false;echoPart=0;obstacles=[];riposte=0;phase='attack';phaseClock=0;beginEchoPart();
+        }
+        function startEchoBlock(index=echoBlock,health=echoAnchor?.block===echoStageStart(index)?echoAnchor.lives:3){
+            if(index===0&&campaignRun.archiveCleared){campaignRun.echoStarted=true;saveCampaignRun();}
+            const carry=storyMode==='echoAnchor'&&index===echoBlock?{angle,direction,currentTrack,currentRadius,targetRadius,stats:{...stats},score,frameCount}:null;
+            beginEchoChallenge(index,!!carry);
+            restartAllowedAt=0;startBattle(false);echoChapter=true;storyMode='battle';echoBlock=index;echoClear=false;
+            if(carry){angle=carry.angle;direction=carry.direction;currentTrack=carry.currentTrack;currentRadius=carry.currentRadius;targetRadius=carry.targetRadius;stats=carry.stats;score=carry.score;frameCount=carry.frameCount;}
+            else{currentTrack=1;currentRadius=targetRadius=130;angle=0;direction=1;}
+            routeHistory=[];lives=health;invulnerable=0;dashFrames=0;dashCooldown=0;bulletTime=0;bulletCooldown=0;echoTurnFlash=0;
+            bossHP=6*(echoMoves.length-echoBlock)/echoMoves.length;resetEchoSequence();persistEcho();showDialogue();
+        }
+        function echoAreas(){
+            if(echoOpening||phase==='finisher')return [];
+            const plan=echoSegment(),preview=echoState==='warning',fields=[];
+            if(plan.wall&&(preview||echoActive<plan.wall.duration))fields.push({kind:'wall',inner:58,outer:202,opening:echoGap,gap:plan.wall.gap,active:!preview,visible:true});
+            if(plan.rings)for(const ring of echoRings){
+                if(ring.passed)continue;const ready=!preview&&ring.active;
+                fields.push({kind:'ring',inner:ring.radius-6,outer:ring.radius+6,opening:ring.gap,gap:plan.rings.gap,active:ready,visible:true,ring,preview:!ready});
+            }
+            if(plan.cut&&echoCutPhase()!=='recover')fields.push({kind:'cut',inner:tracks[echoMarked]-14,outer:tracks[echoMarked]+14,opening:0,gap:0,active:!preview&&echoCutPhase()==='cut',visible:true});
+            return fields;
+        }
+        function echoShapeHit(f,r,a){
+            if(!f.active)return false;
+            if(f.kind==='cut')return Math.abs(r-(f.inner+f.outer)/2)<23;
+            if(f.kind==='ring'&&Math.abs(r-f.ring.radius)>=15)return false;
+            if(f.kind==='wall'&&!(r+9>f.inner&&r-9<f.outer))return false;
+            return Math.abs(Math.atan2(Math.sin(a-f.opening),Math.cos(a-f.opening)))+Math.asin(Math.min(1,9/r))>f.gap;
+        }
+        function echoUpdate(){
+            if(phase==='finisher'){phaseClock++;if(phaseClock>=60)finishBattle(true);return;}
+            echoClock++;phaseClock=echoClock;if(echoTurnFlash>0)echoTurnFlash--;if(echoLockFlash>0)echoLockFlash--;if(riposte>0)riposte--;if(strikeCooldown>0)strikeCooldown--;
+            if(echoOpening){if(riposte<=0){resetEchoSequence();addFloatText('COUNTER MISSED · PATTERN REPEATS',350,265,'#ff8899');}return;}
+            const plan=echoSegment();
+            if(echoState==='warning'){
+                if(plan.wall)echoGap+=echoVelocity;echoMarked=echoNearest();echoTicks++;
+                if(echoTicks>=plan.warning){
+                    const entered=!plan.wall||Math.abs(Math.atan2(Math.sin(angle-echoGap),Math.cos(angle-echoGap)))+Math.asin(9/currentRadius)<=plan.wall.gap-.12;
+                    if(entered){echoState='active';sound('lane');}
+                }return;
+            }
+            if(plan.wall&&echoActive<plan.wall.duration)echoGap+=echoVelocity;
+            if(plan.rings)for(const ring of echoRings){
+                if(echoActive<ring.delay)continue;ring.active=true;ring.radius-=plan.rings.speed;if(ring.radius<45)ring.passed=true;
+            }
+            if(plan.cut&&!echoCutsDone){
+                const spec=plan.cut,cycle=spec.track+spec.lock+spec.cut+spec.recover;echoCutAge=echoActive%cycle;
+                if(echoCutAge===0)echoLocked=null;if(echoCutAge<spec.track)echoMarked=echoNearest();
+                if(echoCutAge===spec.track){echoLocked=echoNearest();echoMarked=echoLocked;echoLockFlash=5;sound('open');}
+                if(echoCutAge===spec.track+spec.lock)sound('lane');
+                if(echoActive+1>=cycle*spec.count)echoCutsDone=true;
+            }
+            echoActive++;
+            const done=(!plan.wall||echoActive>=plan.wall.duration)&&(!plan.rings||echoRings.every(r=>r.passed))&&(!plan.cut||echoCutsDone);
+            if(done){
+                if(echoPart+1<echoPlan().parts.length){echoPart++;beginEchoPart();sound('lane');}
+                else{echoOpening=true;riposte=90;sound('open');}
+            }
+        }
+        function echoStrike(){
+            if(!isPlaying||paused||strikeCooldown>0||riposte<=0||!echoOpening)return;
+            sound('strike');beamFlash=14;bossFlash=24;hitStop=6;triggerShake(12);riposte=0;strikeCooldown=24;
+            score+=300;if(roundHits===0)stats.clean++;roundHits=0;const previousStage=echoPlan().stage;echoBlock++;
+            bossHP=6*(echoMoves.length-echoBlock)/echoMoves.length;
+            if(echoBlock>=echoMoves.length){echoBlock=echoMoves.length-1;echoClear=true;phase='finisher';phaseClock=0;return;}
+            if(echoPlan().stage!==previousStage){persistEcho();storyMode='echoAnchor';storyIndex=0;isPlaying=false;showDialogue();}
+            else{resetEchoSequence();addFloatText('BREAK THROUGH',350,265,'#ffdd88');}
+        }
+        function echoFinish(victory){
+            isPlaying=false;obstacles=[];echoFields=[];echoQueue=[];bulletTime=0;paused=false;restartAllowedAt=performance.now()+3000;
+            if(victory){if(campaignRun.archiveCleared&&campaignRun.echoStarted){campaignRun.echoCleared=true;saveCampaignRun();}finishEchoChallenge();recordStoryCompletion();storyMode='echoEnding';storyIndex=0;echoClear=true;}
+            else{echoDeaths++;if(challengeRun){challengeRun.noRewinds=false;challengeRun.echoEligible=false;challengeRun.echoRetries++;challengeRun.echoAwaitingRetry=true;saveChallengeRun();}echoBlock=echoStageStart();sound('lose');storyMode='echoRewind';storyIndex=0;}
+            showDialogue();
+        }
+        function echoCue(){
+            if(echoOpening)return 'CORE OPEN · E';
+            const plan=echoSegment();
+            if(echoState==='warning')return echoTicks>=plan.warning?'ENTRY OPEN · ENTER THE MINT GAP':'READY · '+(Math.max(0,plan.warning-echoTicks)/60).toFixed(1)+'s';
+            if(plan.cut){const state=echoCutPhase();return state==='locked'?'LOCKED · '+((plan.cut.track+plan.cut.lock-echoCutAge)/60).toFixed(1)+'s':state==='cut'?'CUT':state==='tracking'?'TRACKING':'RECOVERY';}
+            return plan.wall?'STAY IN THE GAP':'STAGGERED GAPS';
+        }
+        function echoCueColor(){
+            if(echoOpening)return '#ffe08a';if(echoState==='warning')return '#ffda90';
+            const state=echoCutPhase();return state==='locked'?'#ffe69a':state==='cut'?'#ff849b':echoSegment().cut?'#b3d9e1':'#a4ffe5';
+        }
+        function echoHint(){
+            const plan=echoSegment();
+            return plan.wall&&plan.cut?'Hold the mint gap · Change orbit after the gold lock':plan.wall?'Follow the moving gap · Space reverses your orbit':plan.rings?'Mint marks the gaps · Numbers show ring order':'Amber follows · Gold locks · Change orbit before red';
+        }
+        function echoArc(r,a,b,color,width=1){ctx.beginPath();ctx.arc(350,350,r,a,b);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke();}
+        function drawEchoAttacks(){
+            for(const f of echoAreas()){
+                ctx.save();
+                if(f.kind==='ring'){
+                    const r=f.preview?265+f.ring.index*16:f.ring.radius;
+                    if(f.preview)ctx.setLineDash([5,8]);echoArc(r,f.opening+f.gap,f.opening+Math.PI*2-f.gap,f.preview?'#ffc58566':f.ring.index%2?'#d49bff':'#ff986f',10);
+                    ctx.setLineDash([]);echoArc(r,f.opening-f.gap,f.opening+f.gap,'#9afae6',3);
+                    ctx.font='12px Segoe UI';ctx.fillStyle='#caf7e9';ctx.textAlign='center';ctx.fillText(String(f.ring.index+1),350+Math.cos(f.opening)*(r+17),350+Math.sin(f.opening)*(r+17));
+                }else if(f.kind==='cut'){
+                    const state=echoCutPhase(),color=state==='tracking'?'#e9b37a':state==='locked'?'#ffe69a':'#ff6284',r=tracks[echoMarked];
+                    if(state==='tracking')ctx.setLineDash([7,9]);echoArc(r,0,Math.PI*2,color,state==='cut'?28:state==='locked'?4:2);ctx.setLineDash([]);
+                    echoArc(r-14,0,Math.PI*2,color+'80');echoArc(r+14,0,Math.PI*2,color+'80');
+                    const spec=echoSegment().cut,progress=state==='tracking'?echoCutAge/spec.track:state==='locked'?(echoCutAge-spec.track)/spec.lock:1;
+                    echoArc(38,-Math.PI/2,-Math.PI/2+Math.PI*2*progress,color,3);
+                    if(state==='cut')for(let i=0;i<18;i++){const a=i*Math.PI*2/18+echoActive*.045;ctx.beginPath();ctx.moveTo(350+Math.cos(a)*(r-14),350+Math.sin(a)*(r-14));ctx.lineTo(350+Math.cos(a+.08)*(r+14),350+Math.sin(a+.08)*(r+14));ctx.strokeStyle='#ffb4c3';ctx.stroke();}
+                }else{
+                    ctx.beginPath();ctx.arc(350,350,f.outer,f.opening+f.gap,f.opening+Math.PI*2-f.gap);ctx.arc(350,350,f.inner,f.opening+Math.PI*2-f.gap,f.opening+f.gap,true);ctx.closePath();
+                    ctx.fillStyle=f.active?'rgba(255,60,100,.27)':'rgba(255,190,80,.08)';ctx.fill();ctx.strokeStyle=f.active?'#ff627e':'#e5bd79';ctx.lineWidth=2;if(!f.active)ctx.setLineDash([6,8]);ctx.stroke();ctx.setLineDash([]);
+                    ctx.save();ctx.clip();ctx.strokeStyle=f.active?'#ff809c50':'#e5bd791a';ctx.lineWidth=1;for(let x=100;x<800;x+=18){ctx.beginPath();ctx.moveTo(x,100);ctx.lineTo(x-500,600);ctx.stroke();}ctx.restore();
+                    for(const a of [f.opening-f.gap,f.opening+f.gap]){ctx.beginPath();ctx.moveTo(350+Math.cos(a)*58,350+Math.sin(a)*58);ctx.lineTo(350+Math.cos(a)*202,350+Math.sin(a)*202);ctx.strokeStyle='#9afae6';ctx.lineWidth=3;ctx.stroke();}
+                    echoArc(211,f.opening-f.gap,f.opening+f.gap,'#9afae6',3);
+                    const a=f.opening;ctx.translate(350+Math.cos(a)*227,350+Math.sin(a)*227);ctx.rotate(a+Math.sign(echoVelocity)*Math.PI/2);ctx.beginPath();ctx.moveTo(12,0);ctx.lineTo(-7,-6);ctx.lineTo(-7,6);ctx.closePath();ctx.fillStyle='#9afae6';ctx.fill();
+                }ctx.restore();
+            }
+        }
+        function drawEchoLockFlash(){
+            if(echoLockFlash<=0)return;ctx.save();ctx.fillStyle='rgba(255,210,150,'+(echoLockFlash/180)+')';ctx.fillRect(0,0,700,700);ctx.restore();
+        }
+        function drawEchoDirection(){
+            const ahead=angle+direction*.24;ctx.save();ctx.beginPath();ctx.arc(350,350,currentRadius,angle-direction*.32,angle,direction<0);ctx.strokeStyle='#66e5ff99';ctx.lineWidth=3;ctx.stroke();
+            ctx.translate(350+Math.cos(ahead)*currentRadius,350+Math.sin(ahead)*currentRadius);ctx.rotate(ahead+direction*Math.PI/2);const size=echoTurnFlash>0?1.3:1;ctx.scale(size,size);ctx.beginPath();ctx.moveTo(10,0);ctx.lineTo(-5,-5);ctx.lineTo(-5,5);ctx.closePath();ctx.fillStyle=echoTurnFlash>0?'#fff':'#6eeaff';ctx.fill();ctx.restore();
+            ctx.textAlign='center';ctx.font='12px Segoe UI';ctx.fillStyle=echoTurnFlash>0?'#fff':'#6eeaff';ctx.fillText((echoTurnFlash>0?'TURNED ':'YOUR ORBIT ')+(direction>0?'↻ CLOCKWISE':'↺ COUNTERCLOCKWISE'),350,129);
+        }
+
+
+        let storyMode='title',storyIndex=0,lesson=0,lessonClock=0,lessonAction=false;
+        let tutorialRoute=[],lessonOrb=null,lessonSuccess=0,storyCheckpoint=null;
+        const storyLines={
+            intro:[['ECHO','Can you hear me? Good. Stay with my voice.'],['ECHO','You are a repair core. The facility clock has stopped at 00:59. Until it moves, no rescue signal can get out.'],['ECHO','The route to the clock runs through the archive. First, calibration. Nothing in this test can hurt you.']],
+            bridge:[['ECHO','Calibration complete. The Archivist guards the way to the clock.'],['THE ARCHIVIST','Every moment is preserved here. To move forward, you will have to break through my records.'],['ECHO','Watch its core. When it opens, counter. That is how you make a way through.']],
+            ending:[['THE ARCHIVIST','Different records. The same timestamp: 00:59.'],['THE ARCHIVIST','I restore moments from my archive. Someone else keeps restoring the whole minute.'],['ECHO','Come to the clock. I will explain.'],['THE ARCHIVIST','The clock is not broken. Ask her what happens when the next second arrives.']],
+            echoIntro:[['ECHO','At the next second, the facility fails. I keep returning it to this minute.'],['ECHO','While it repeats, everyone is alive. If I let time move, I may not be able to bring you back.'],['CORE','Holding them here will never get them out. Let me reach the rescue network.'],['ECHO','Then survive what comes next. If you fall, I will return you to the last anchor.']],
+            echoRewind:[['ECHO','Stay with me. Back to the anchor. I will not let this be your last second.']],
+            echoAnchor:[['TIME ANCHOR','Phase reached. A retry restores this phase and its saved lives.']],
+            echoEnding:[['ECHO','I can hold this minute forever. I thought that meant I could keep everyone safe.'],['ECHO','If I let go... I cannot promise you the next second.'],['CORE','You do not have to promise. Open the way. I will go.']],
+            complete:[['01:00','Echo lets the clock advance. Your rescue signal reaches the network. An answer comes back. For the first time, there is a way out.']]
+        };
+        const lessonText=[
+            'Space / arena click reverses your direction. Turn away from the approaching light.',
+            'W / ↑ moves one orbit outward. S / ↓ moves one orbit inward. Leave the marked orbit; 1 / 2 / 3 also blink directly between orbits.',
+            'Wait for the core to turn gold, then press E to counter.',
+            'Optional: change orbit just before the light touches you for a Perfect Dodge. This opens an early counter against Chapter II projectiles. You can skip this drill.'
+        ];
+        try {
+            const saved=JSON.parse(localStorage.getItem('nextSecondCheckpointV1')||'null');
+            if(saved && Array.isArray(saved.route) && saved.route.length>1 && saved.route.length<=2400 && saved.route.every(p=>Number.isFinite(p.angle)&&Number.isFinite(p.radius)&&p.radius>=80&&p.radius<=180))storyCheckpoint=saved;
+        }catch{}
+        let menuReturn=null,storyCompleted=false;
+        try{storyCompleted=localStorage.getItem('nextSecondCompleteV1')==='true';}catch{}
+        const challengeIds=['firstClear','noRewinds','archivistNoHit','echoNoHit'];
+        let challengeRecords={unlocks:{},lastClear:null},challengeRun=null,recordsReturnFocus=null;
+        function freshChallengeRun(){return {archiveStarted:false,archiveCleared:false,archiveHits:0,echoStarted:false,echoCleared:false,echoEligible:false,echoHits:0,echoRetries:0,echoAwaitingRetry:false,noRewinds:true,earned:[]};}
+        try{
+            const saved=JSON.parse(localStorage.getItem('nextSecondRecordsV1')||'null');
+            if(saved?.unlocks){for(const id of challengeIds)if(saved.unlocks[id]===true)challengeRecords.unlocks[id]=true;}
+            const clear=saved?.lastClear;
+            if(clear&&typeof clear.archiveCleared==='boolean'&&typeof clear.noRewinds==='boolean'&&typeof clear.fullAttempt==='boolean'&&
+                Number.isInteger(clear.echoHits)&&clear.echoHits>=0&&Number.isInteger(clear.echoRetries)&&clear.echoRetries>=0&&
+                (clear.archiveHits===null||Number.isInteger(clear.archiveHits)&&clear.archiveHits>=0)&&Array.isArray(clear.newUnlocks)){
+                challengeRecords.lastClear={...clear,newUnlocks:clear.newUnlocks.filter(id=>challengeIds.includes(id))};
+            }
+            const run=JSON.parse(localStorage.getItem('nextSecondRunV1')||'null'),base=freshChallengeRun();
+            if(run&&Object.keys(base).every(key=>Array.isArray(base[key])?Array.isArray(run[key]):typeof base[key]==='boolean'?typeof run[key]==='boolean':Number.isInteger(run[key])&&run[key]>=0)){
+                challengeRun={...run,earned:run.earned.filter(id=>challengeIds.includes(id))};
+            }
+        }catch{}
+        function saveChallengeRecords(){try{localStorage.setItem('nextSecondRecordsV1',JSON.stringify(challengeRecords));}catch{}}
+        function saveChallengeRun(){try{localStorage.setItem('nextSecondRunV1',JSON.stringify(challengeRun));}catch{}}
+        function unlockChallenge(id){
+            if(challengeRecords.unlocks[id])return;
+            challengeRecords.unlocks[id]=true;
+            if(challengeRun&&!challengeRun.earned.includes(id))challengeRun.earned.push(id);
+            saveChallengeRecords();saveChallengeRun();
+        }
+        // Old clears are evidence for these two records only; never infer a no-rewind run.
+        if(storyCompleted)unlockChallenge('firstClear');
+        if(record?.hits===0)unlockChallenge('archivistNoHit');
+        let menuMode='story',modeTransition=null,infernoEngine=null,infernoUnlocked=false;
+        const freshCampaignRun=()=>({calibrated:false,archiveCleared:false,echoStarted:false,echoCleared:false});
+        let campaignRun=freshCampaignRun();
+        try{
+            infernoUnlocked=localStorage.getItem('nextSecondCampaignClearV1')==='true';
+            const saved=JSON.parse(localStorage.getItem('nextSecondCampaignRunV1')||'null');
+            if(saved&&Object.keys(campaignRun).every(key=>typeof saved[key]==='boolean'))campaignRun=saved;
+            else if(storyCheckpoint){
+                campaignRun.calibrated=true;
+                campaignRun.archiveCleared=challengeRun?.archiveCleared===true;
+                campaignRun.echoStarted=campaignRun.archiveCleared&&challengeRun?.echoStarted===true;
+                campaignRun.echoCleared=campaignRun.echoStarted&&challengeRun?.echoCleared===true;
+            }
+            // A generic ending flag can come from the Echo preview. Only a recorded
+            // journey through both bosses, or the new campaign ledger, unlocks Inferno.
+            if(challengeRecords.unlocks.noRewinds||challengeRecords.unlocks.firstClear&&challengeRecords.lastClear?.archiveCleared)infernoUnlocked=true;
+            if(infernoUnlocked)localStorage.setItem('nextSecondCampaignClearV1','true');
+            if(infernoUnlocked&&localStorage.getItem('nextSecondMenuModeV1')==='inferno')menuMode='inferno';
+        }catch{}
+        function saveCampaignRun(){try{localStorage.setItem('nextSecondCampaignRunV1',JSON.stringify(campaignRun));}catch{}}
+        function checkInfernoUnlock(){
+            if(!Object.values(campaignRun).every(value=>value===true))return;
+            infernoUnlocked=true;try{localStorage.setItem('nextSecondCampaignClearV1','true');}catch{}
+        }
+        checkInfernoUnlock();
+        function ensureInferno(){
+            if(!infernoUnlocked)return null;
+            if(!infernoEngine&&window.createInferno)infernoEngine=window.createInferno(document.getElementById('infernoGame'),{
+                isUnlocked:()=>infernoUnlocked,
+                onMenu:()=>{infernoEngine.suspend();storyMode='title';storyIndex=0;document.getElementById('mainMenu').hidden=false;document.getElementById('infernoPractice').hidden=true;showDialogue();},
+                getMuted:()=>muted,
+                setMuted:value=>{muted=value;soundButton.textContent=muted?'Sound: Off':'Sound: On';soundButton.setAttribute('aria-pressed',String(muted));if(audioBus)audioBus.gain.value=muted?0:.3;}
+            });
+            return infernoEngine;
+        }
+        function applyMenuMode(next){
+            if(next==='inferno'&&!infernoUnlocked)return false;
+            menuMode=next;
+            for(const id of ['practiceChoices','infernoPractice'])document.getElementById(id).hidden=true;
+            document.getElementById('mainMenu').hidden=false;
+            try{localStorage.setItem('nextSecondMenuModeV1',menuMode);}catch{}
+            refreshTitle();return true;
+        }
+        function switchMenuMode(){
+            if(storyMode!=='title'||modeTransition||!infernoUnlocked||!document.getElementById('recordsScreen').hidden)return;
+            const to=menuMode==='story'?'inferno':'story',reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+            modeTransition={to,start:performance.now(),duration:reduced?180:1250,swapped:false};
+            const overlay=document.getElementById('modeTransition');overlay.dataset.target=to;overlay.hidden=false;
+            document.getElementById('modeTransitionTitle').textContent=to==='inferno'?'INFERNO':'THE NEXT SECOND';
+            document.getElementById('modeTransitionCaption').textContent=to==='inferno'?'LIMITERS RELEASED':'TIME RESTORED';
+            document.getElementById('titleScreen').inert=true;document.getElementById('modeToggle').disabled=true;
+            unlockAudio();sound(to==='inferno'?'recall':'open');
+        }
+        function updateModeTransition(now){
+            if(!modeTransition)return;
+            const age=now-modeTransition.start;
+            if(!modeTransition.swapped&&age>=modeTransition.duration*.5){modeTransition.swapped=true;applyMenuMode(modeTransition.to);}
+            if(age>=modeTransition.duration){modeTransition=null;document.getElementById('modeTransition').hidden=true;document.getElementById('titleScreen').inert=false;refreshTitle();document.getElementById('modeToggle').focus?.();}
+        }
+        function launchInferno(choice='full',resume=false){
+            if(!infernoUnlocked||menuMode!=='inferno'||storyMode!=='title'||modeTransition)return false;
+            const engine=ensureInferno();if(!engine||!engine.enter(choice,resume))return false;
+            storyMode='inferno';isPlaying=false;paused=false;showDialogue();return true;
+        }
+        function beginArchiveChallenge(){
+            challengeRun??=freshChallengeRun();
+            if(challengeRun.archiveStarted||challengeRun.echoStarted)challengeRun.noRewinds=false;
+            challengeRun.archiveStarted=true;challengeRun.archiveCleared=false;challengeRun.archiveHits=0;
+            saveChallengeRun();
+        }
+        function noteChallengeHit(){
+            if(!challengeRun||storyMode!=='battle')return;
+            if(echoChapter)challengeRun.echoHits++;else challengeRun.archiveHits++;
+            saveChallengeRun();
+        }
+        function finishArchiveChallenge(victory){
+            if(victory&&campaignRun.calibrated){campaignRun.archiveCleared=true;saveCampaignRun();}
+            if(!challengeRun)return;
+            if(victory){challengeRun.archiveCleared=true;challengeRun.archiveHits=stats.hits;if(stats.hits===0)unlockChallenge('archivistNoHit');}
+            else challengeRun.noRewinds=false;
+            saveChallengeRun();
+        }
+        function beginEchoChallenge(index,carry){
+            challengeRun??=freshChallengeRun();
+            if(carry)return;
+            if(storyMode==='echoRewind'||challengeRun.echoAwaitingRetry&&storyMode!=='echoIntro'){
+                challengeRun.noRewinds=false;challengeRun.echoEligible=false;
+            }else{
+                if(challengeRun.echoStarted||index!==0)challengeRun.noRewinds=false;
+                if(challengeRun.echoStarted)challengeRun.echoRetries++;
+                if(index===0)challengeRun.echoHits=0;
+                challengeRun.echoEligible=index===0;challengeRun.echoCleared=false;
+            }
+            challengeRun.echoAwaitingRetry=false;challengeRun.echoStarted=true;echoDeaths=challengeRun.echoRetries;saveChallengeRun();
+        }
+        function finishEchoChallenge(){
+            if(!challengeRun||challengeRun.echoCleared)return;
+            challengeRun.echoCleared=true;
+            unlockChallenge('firstClear');
+            if(challengeRun.echoEligible&&challengeRun.echoHits===0)unlockChallenge('echoNoHit');
+            const noRewinds=challengeRun.archiveCleared&&challengeRun.echoEligible&&challengeRun.noRewinds;
+            if(noRewinds)unlockChallenge('noRewinds');
+            challengeRecords.lastClear={archiveCleared:challengeRun.archiveCleared,archiveHits:challengeRun.archiveCleared?challengeRun.archiveHits:null,
+                echoHits:challengeRun.echoHits,echoRetries:challengeRun.echoRetries,fullAttempt:challengeRun.echoEligible,noRewinds,newUnlocks:[...challengeRun.earned]};
+            saveChallengeRecords();saveChallengeRun();
+        }
+        function showRecords(){
+            if(!['title','complete'].includes(storyMode)||modeTransition)return;
+            const hell=storyMode==='title'&&menuMode==='inferno';
+            if(hell&&!infernoUnlocked)return;
+            document.getElementById('storyRecordGrid').hidden=hell;document.getElementById('infernoRecords').hidden=!hell;
+            const latest=storyMode==='complete',clear=challengeRecords.lastClear;
+            recordsReturnFocus=document.activeElement;
+            document.getElementById('recordsHeading').textContent=latest?'You made it.':'Challenge records';
+            document.getElementById('clearSummary').textContent=latest&&clear?
+                (clear.archiveCleared?'Archivist: '+clear.archiveHits+' hits · ':'')+(clear.fullAttempt?'Echo: ':'Echo checkpoint run: ')+clear.echoHits+' recorded hits · '+clear.echoRetries+' Echo restarts this journey. '+(clear.noRewinds?'Both bosses cleared without turning back.':'The next second is yours.'):
+                'Every clear counts. Extra challenges are yours to pursue, at your own pace.';
+            for(const id of challengeIds){
+                const earned=!!challengeRecords.unlocks[id];
+                document.getElementById('record-'+id).dataset.earned=String(earned);
+                document.getElementById('status-'+id).textContent=earned?(latest&&clear?.newUnlocks.includes(id)?'EARNED THIS JOURNEY':'ACHIEVED'):'TO DISCOVER';
+            }
+            document.getElementById('recordFootnote').textContent="Archivist's Recall attack is allowed. Returning to the menu and continuing the current fight is allowed. Loading an anchor or restarting a fight breaks No turning back. Records stay when you start a new journey.";
+            if(hell){
+                const stats=ensureInferno()?.readRecord()||{clears:0,furthest:0,bestTime:null,bestHits:null};
+                document.getElementById('recordsHeading').textContent='Inferno records';
+                document.getElementById('clearSummary').textContent='Six sequences. Three lives. One attempt.';
+                document.getElementById('infernoClearCount').textContent=String(stats.clears);
+                document.getElementById('infernoFurthest').textContent=stats.furthest+' / 6';
+                document.getElementById('infernoBestTime').textContent=Number.isFinite(stats.bestTime)?stats.bestTime.toFixed(1)+'s':'—';
+                document.getElementById('infernoBestHits').textContent=stats.bestHits===null?'—':String(stats.bestHits);
+                document.getElementById('recordFootnote').textContent='Only full Inferno fights count here. Focused practice keeps its own result screen and never changes your campaign records.';
+            }
+            document.getElementById('recordsScreen').hidden=false;
+            for(const id of ['titleScreen','storyPanel','battleControls','gameHelp'])document.getElementById(id).inert=true;
+            document.getElementById('recordsBack').focus?.();
+        }
+        function closeRecords(){
+            document.getElementById('recordsScreen').hidden=true;
+            for(const id of ['titleScreen','storyPanel','battleControls','gameHelp'])document.getElementById(id).inert=false;
+            recordsReturnFocus?.focus?.();
+        }
+        let finaleTick=0,finaleBeat=-1;
+        function beginFinale(){
+            isPlaying=false;paused=false;obstacles=[];pendingWaves=[];echoFields=[];echoQueue=[];particles=[];floatTexts=[];
+            shakeFrames=0;beamFlash=0;bossFlash=0;bulletTime=0;finaleTick=0;finaleBeat=-1;
+            storyMode='finale';storyIndex=0;recordStoryCompletion();showDialogue();syncFinale();
+        }
+        function syncFinale(){
+            const beat=finaleTick<90?0:finaleTick<150?1:finaleTick<270?2:3;
+            if(beat!==finaleBeat){
+                finaleBeat=beat;
+                document.getElementById('finaleClock').textContent=beat<2?'00:59':'01:00';
+                document.getElementById('finaleStatus').textContent=['TIME HELD','TIME RELEASED','SIGNAL SENT','SIGNAL RECEIVED'][beat];
+                document.getElementById('finaleMessage').textContent=['For a moment, nothing moves.','Echo lets go.','Your voice travels beyond the minute.','“We hear you. Hold on. Help is coming.”'][beat];
+                if(beat===2)sound('tick');if(beat===3)sound('win');
+            }
+            document.getElementById('finaleContinue').hidden=finaleTick<360;
+        }
+        function updateFinale(){finaleTick=Math.min(420,finaleTick+1);syncFinale();}
+        function finishFinale(){
+            if(storyMode!=='finale'||finaleTick<360)return;
+            storyMode='complete';storyIndex=0;echoClear=true;showDialogue();showRecords();
+        }
+        function drawFinale(){
+            ctx.clearRect(0,0,700,700);
+            for(const st of stars){ctx.beginPath();ctx.arc(st.x,st.y,st.size*.7,0,Math.PI*2);ctx.fillStyle='rgba(154,208,221,.18)';ctx.fill();}
+            const progress=Math.max(0,Math.min(1,(finaleTick-90)/60)),still=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+            drawClockFace(350,240,88,finaleTick>=150?'#9ce9cf':'#78a3ae',still?(finaleTick>=150?60:59):59+progress);
+            if(finaleTick>=150&&!still){
+                const spread=Math.min(1,(finaleTick-150)/120);ctx.beginPath();ctx.arc(350,240,100+spread*110,0,Math.PI*2);
+                ctx.strokeStyle='rgba(156,233,207,'+((1-spread)*.4)+')';ctx.lineWidth=1;ctx.stroke();
+            }
+        }
+        function refreshTitle(){
+            const title=storyMode==='title';
+            const hell=menuMode==='inferno',quiet=title||storyMode==='finale'||storyMode==='complete'||storyMode==='inferno';
+            document.documentElement?.setAttribute('data-world',hell?'inferno':'story');
+            document.getElementById('storyStage').hidden=storyMode==='inferno';
+            document.getElementById('titleScreen').hidden=!title;
+            document.getElementById('battleControls').hidden=quiet;
+            document.getElementById('controlHint').hidden=quiet;
+            document.getElementById('gameHelp').hidden=quiet;
+            document.getElementById('finaleScreen').hidden=storyMode!=='finale';
+            document.getElementById('titleRecords').textContent='Records · '+challengeIds.filter(id=>challengeRecords.unlocks[id]).length+'/4';
+            document.getElementById('titleContinue').disabled=!(menuReturn||echoAnchor||storyCheckpoint||storyCompleted);
+            document.getElementById('continueDetail').textContent=menuReturn?'Return to your current moment':storyCompleted?'View the ending':echoAnchor?'Chapter III · Phase '+(echoAnchor.block<3?1:echoAnchor.block<5?2:3)+' · '+echoAnchor.lives+' lives':storyCheckpoint?'Chapter II · The Archive':'No saved journey yet';
+            document.getElementById('titleClock').textContent=storyCompleted?'01:00':'00:59';
+            document.getElementById('titleContinue').textContent='Continue';
+            document.getElementById('titleNew').textContent='New journey';
+            document.getElementById('titleNew').title='Start from Chapter I and replace the saved journey. Records and unlocked modes are kept.';
+            document.getElementById('titlePractice').textContent=hell?'Inferno practice':'Practice';
+            document.getElementById('titleEyebrow').textContent=hell?'Beyond the last second':'A story held between seconds';
+            document.getElementById('titleBrand').innerHTML=hell?'ECHO /<br><span>INFERNO</span>':'THE NEXT<br><span>SECOND</span>';
+            document.getElementById('clockCaption').textContent=hell?'NO DIALOGUE. NO ANCHORS.':'ONE MORE MOMENT.';
+            document.getElementById('titleFooter').textContent=hell?'SIX SEQUENCES · THREE LIVES · ONE ATTEMPT':'THREE CHAPTERS · ONE DECISION';
+            document.getElementById('modeStatus').textContent=infernoUnlocked?(hell?'INFERNO CHALLENGE':'STORY JOURNEY'):'COMPLETE THE STORY TO UNLOCK';
+            const toggle=document.getElementById('modeToggle');toggle.disabled=!infernoUnlocked||!!modeTransition;toggle.textContent=infernoUnlocked?(hell?'Inferno · On':'Inferno · Off'):'Inferno · Locked';toggle.setAttribute?.('aria-checked',String(hell));
+            if(hell){
+                const resume=infernoEngine?.hasSession();
+                document.getElementById('titleContinue').disabled=false;document.getElementById('titleContinue').textContent=resume?'Resume fight':'Enter Inferno';
+                document.getElementById('titleNew').textContent='New run · 3 lives';document.getElementById('titleNew').title='Start a new full Inferno fight';
+                document.getElementById('titleRecords').textContent='Inferno records';document.getElementById('titleClock').textContent='06';
+                document.getElementById('continueDetail').textContent=resume?'Your current fight is paused':'Reach the gold outer mark · E to break early';
+            }
+        }
+        function openTitle(){
+            if(storyMode==='title')return;
+            menuReturn={mode:storyMode,index:storyIndex,playing:isPlaying,paused};
+            isPlaying=false;paused=false;storyMode='title';storyIndex=0;
+            document.getElementById('practiceChoices').hidden=true;document.getElementById('mainMenu').hidden=false;showDialogue();
+        }
+        function newJourney(){
+            if(modeTransition||storyMode==='inferno')return;
+            campaignRun=freshCampaignRun();saveCampaignRun();
+            applyMenuMode('story');
+            closeRecords();challengeRun=freshChallengeRun();saveChallengeRun();
+            menuReturn=null;echoChapter=false;echoClear=false;storyCompleted=false;echoAnchor=null;storyCheckpoint=null;tutorialRoute=[];
+            for(const key of ['echoAnchorV3','echoAnchorV4','nextSecondCheckpointV1','nextSecondCompleteV1']){try{localStorage.removeItem(key);}catch{}}
+            restartAllowedAt=0;storyMode='intro';storyIndex=0;isPlaying=false;paused=false;unlockAudio();showDialogue();
+        }
+        function continueJourney(){
+            unlockAudio();
+            if(menuReturn){const state=menuReturn;menuReturn=null;storyMode=state.mode;storyIndex=state.index;isPlaying=state.playing;paused=state.paused;document.getElementById('pause').textContent=paused?'Resume P':'Pause P';showDialogue();return;}
+            if(storyCompleted){storyMode='complete';storyIndex=0;showDialogue();}
+            else if(echoAnchor)startEchoBlock(echoAnchor.block);
+            else if(storyCheckpoint){echoChapter=false;tutorialRoute=storyCheckpoint.route.map(p=>({...p}));storyMode='battle';restartAllowedAt=0;startBattle();showDialogue();}
+        }
+        function recordStoryCompletion(){storyCompleted=true;unlockChallenge('firstClear');checkInfernoUnlock();try{localStorage.setItem('nextSecondCompleteV1','true');}catch{}}
+        function drawClockFace(x,y,r,color,second=59){
+            ctx.save();ctx.translate(x,y);ctx.strokeStyle=color;ctx.lineWidth=1;
+            ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.stroke();
+            for(let i=0;i<60;i++){
+                if(i===59&&second===59)continue;
+                const a=i*Math.PI/30-Math.PI/2,inner=r-(i%5===0?10:4);
+                ctx.beginPath();ctx.moveTo(Math.cos(a)*inner,Math.sin(a)*inner);ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);ctx.stroke();
+            }
+            const a=second*Math.PI/30-Math.PI/2;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a)*(r-16),Math.sin(a)*(r-16));ctx.stroke();ctx.restore();
+        }
+        function drawTitleScene(){
+            if(menuMode==='inferno'){drawInfernoTitle();return;}
+            ctx.clearRect(0,0,700,700);
+            for(const st of stars){ctx.beginPath();ctx.arc(st.x,st.y,st.size*.7,0,Math.PI*2);ctx.fillStyle='rgba(154,208,221,.22)';ctx.fill();}
+            const t=performance.now()/1000,still=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+            drawClockFace(350,310,156,'#68c4cc30',storyCompleted?0:59);
+            for(let i=0;i<3;i++){
+                const r=104+i*39,a=(still?0:t*.05)*(i%2?-1:1)+i*1.7;
+                ctx.beginPath();ctx.arc(350,310,r,a,a+Math.PI*1.3);ctx.strokeStyle='#7aaab51c';ctx.lineWidth=1;ctx.stroke();
+                ctx.beginPath();ctx.arc(350+Math.cos(a)*r,310+Math.sin(a)*r,2,0,Math.PI*2);ctx.fillStyle='#b4fff06a';ctx.fill();
+            }
+            ctx.strokeStyle='#69808a38';ctx.beginPath();ctx.moveTo(70,620);ctx.lineTo(630,620);ctx.stroke();
+        }
+        function drawInfernoTitle(){
+            ctx.clearRect(0,0,700,700);
+            const still=window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches,t=still?0:performance.now()/1000;
+            for(let i=0;i<55;i++){const x=(i*137+39)%700,y=still?(i*91)%700:700-((i*91+t*(3+i%5))%700);ctx.beginPath();ctx.arc(x,y,i%5===0?1.5:.7,0,Math.PI*2);ctx.fillStyle=i%3?'#dba07726':'#ef697148';ctx.fill();}
+            for(let ring=0;ring<3;ring++)for(let i=0;i<6;i++){
+                const a=i*Math.PI/3+t*.025*(ring%2?-1:1),r=106+ring*28;
+                ctx.beginPath();ctx.arc(350,310,r,a+.07,a+Math.PI/3-.07);ctx.strokeStyle=ring===1?'#e4976955':'#9e546442';ctx.lineWidth=ring===1?2:1;ctx.stroke();
+                const p=a+.5;ctx.beginPath();ctx.moveTo(350+Math.cos(p)*(r-5),310+Math.sin(p)*(r-5));ctx.lineTo(350+Math.cos(p)*(r+5),310+Math.sin(p)*(r+5));ctx.stroke();
+            }
+            ctx.beginPath();ctx.moveTo(80,625);ctx.lineTo(620,625);ctx.strokeStyle='#9e546438';ctx.lineWidth=1;ctx.stroke();
+        }
+        function drawBossEmblem(){
+            const open=riposte>0||phase==='finisher',color=open?'#ffdd88':echoChapter?'#87c9d3':'#c1a4eb';
+            ctx.save();
+            if(echoChapter){
+                // The broken clock stays inside the core, below the attack progress ring.
+                drawClockFace(350,350,30,color,59);
+                ctx.beginPath();ctx.arc(350,350,20,-Math.PI*.45,Math.PI*1.15);ctx.strokeStyle=color;ctx.lineWidth=1;ctx.stroke();
+            }else{
+                ctx.translate(350,350);
+                for(let i=2;i>=0;i--){ctx.strokeStyle=i===0?color:'#7f69a366';ctx.lineWidth=1.5;ctx.strokeRect(-25+i*5,-27-i*5,44,52);}
+                ctx.strokeStyle=color;for(let y=-13;y<=13;y+=13){ctx.beginPath();ctx.moveTo(-15,y);ctx.lineTo(8,y);ctx.stroke();}
+            }
+            ctx.restore();
+            if(bossFlash>0){ctx.save();ctx.globalAlpha=bossFlash/30;ctx.strokeStyle='#fff1bd';ctx.lineWidth=2;ctx.beginPath();ctx.arc(350,350,32,0,Math.PI*2);ctx.stroke();ctx.restore();}
+        }
+        function drawBattleHeading(){
+            ctx.textAlign='left';ctx.font='10px Segoe UI';ctx.fillStyle='#7898a6';ctx.fillText(echoChapter?'CHAPTER III':'CHAPTER II',28,32);
+            ctx.font='14px Segoe UI';ctx.fillStyle='#bfe8e8';ctx.fillText('♥'.repeat(Math.max(0,lives))+'♡'.repeat(Math.max(0,3-lives)),28,55);
+            ctx.textAlign='right';ctx.font='20px Consolas,monospace';ctx.fillStyle='#8bb8c2';ctx.fillText('00:59',672,39);
+            ctx.font='10px Segoe UI';ctx.fillStyle='#7898a6';ctx.fillText('TIME HELD',672,56);
+            ctx.textAlign='center';ctx.font='bold 15px Segoe UI';ctx.fillStyle=echoChapter?'#bde9eb':'#cab5ec';ctx.fillText(echoChapter?'ECHO':'THE ARCHIVIST',350,32);
+            ctx.fillStyle='#1b303c';ctx.fillRect(255,46,190,4);ctx.fillStyle=echoChapter?'#92cbc9':'#b6a1d7';ctx.fillRect(255,46,190*Math.max(0,bossHP)/6,4);
+            ctx.font='10px Segoe UI';ctx.fillStyle='#809fac';ctx.fillText(echoChapter?'PHASE '+echoPlan().stage+' / 3 · '+echoStageNames[echoPlan().stage-1]:'PHASE '+archiveStage+' · '+(archiveStage===1?'SINGLE MOVES':'RECORDS INTERLOCK'),350,74);
+            ctx.font='12px Segoe UI';ctx.fillStyle='#a9c4ce';ctx.fillText(echoChapter?echoPlan().name:currentDuel().name,350,97);
+            if(!echoChapter){ctx.textAlign='left';ctx.font='11px Segoe UI';ctx.fillStyle='#7898a6';ctx.fillText('GRAZE '+stats.grazes+' · PERFECT '+stats.dodges,28,128);ctx.textAlign='right';ctx.fillText(archivePage?'SPACE · REVERSE':bulletTime>0?'PERFECT · BULLET TIME':dashCooldown>0?'DODGE '+(dashCooldown/60).toFixed(1)+'s':'DODGE READY',672,128);}
+        }
+        document.getElementById('titleNew').onclick=()=>{if(modeTransition)return;menuMode==='inferno'?launchInferno('full'):newJourney();};
+        document.getElementById('titleContinue').onclick=()=>{if(modeTransition)return;menuMode==='inferno'?launchInferno('full',true):continueJourney();};
+        document.getElementById('titlePractice').onclick=()=>{if(modeTransition)return;document.getElementById('mainMenu').hidden=true;document.getElementById(menuMode==='inferno'?'infernoPractice':'practiceChoices').hidden=false;};
+        document.getElementById('practiceBack').onclick=()=>{document.getElementById('practiceChoices').hidden=true;document.getElementById('mainMenu').hidden=false;};
+        document.getElementById('modeToggle').onclick=switchMenuMode;
+        document.getElementById('infernoPracticeBack').onclick=()=>{document.getElementById('infernoPractice').hidden=true;document.getElementById('mainMenu').hidden=false;};
+        document.querySelectorAll('[data-inferno-practice]').forEach(button=>button.onclick=()=>launchInferno(button.dataset.infernoPractice));
+        document.getElementById('menuButton').onclick=openTitle;
+        document.getElementById('endingMenu').onclick=openTitle;
+        document.getElementById('titleRecords').onclick=showRecords;
+        document.getElementById('endingRecords').onclick=showRecords;
+        document.getElementById('replayEnding').onclick=beginFinale;
+        document.getElementById('recordsBack').onclick=closeRecords;
+        document.getElementById('finaleContinue').onclick=finishFinale;
+
+        function storyActionLabel(){
+            if(storyMode==='tutorial')return lessonSuccess>0?'Enter the archive':'Skip optional drill';
+            if(storyMode==='echoRewind')return 'Return to anchor';
+            if(storyMode==='echoAnchor')return 'Begin phase '+echoPlan().stage;
+            const lines=storyLines[storyMode];
+            if(lines&&storyIndex===lines.length-1){
+                return {intro:'Begin calibration',bridge:'Enter Chapter II',ending:'Go to the clock',echoIntro:'Face Echo',echoEnding:'Let time move'}[storyMode]||'Continue';
+            }
+            return 'Continue';
+        }
+        function showDialogue(){
+            const panel=document.getElementById('storyPanel'),next=document.getElementById('storyNext');
+            refreshTitle();if(storyMode==='title'||storyMode==='finale'||storyMode==='inferno'){panel.hidden=true;return;}
+            document.getElementById('endingMenu').hidden=storyMode!=='complete';document.getElementById('storyMeta').textContent='';
+            document.getElementById('endingRecords').hidden=storyMode!=='complete';
+            document.getElementById('replayEnding').hidden=storyMode!=='complete';
+            panel.dataset.mode=storyMode;
+            next.disabled=false;
+            panel.hidden=false;
+            document.getElementById('resumeStory').hidden=!(storyMode==='intro'&&storyCheckpoint);
+            document.getElementById('restartStory').hidden=storyMode!=='complete';
+            document.getElementById('restartEcho').hidden=!['echoAnchor','echoRewind'].includes(storyMode);
+            if(storyMode==='tutorial'){
+                panel.dataset.speaker='ECHO';document.getElementById('speaker').textContent='ECHO · CALIBRATION '+(lesson+1)+' / 4';
+                document.getElementById('dialogue').textContent=lessonText[lesson];
+                next.hidden=lesson!==3;next.textContent=storyActionLabel();return;
+            }
+            if(storyMode==='battle'){panel.hidden=true;return;}
+            const line=storyLines[storyMode][storyIndex];
+            const speaker=storyMode==='echoAnchor'?'ECHO':line[0];panel.dataset.speaker=speaker;
+            document.getElementById('speaker').textContent=speaker;
+            document.getElementById('dialogue').textContent=storyMode==='echoAnchor'?(echoPlan().stage===2?'One danger at a time. Now keep moving between them. I will hold an anchor here.':'A gap and a cut, together. I can bring you back here. I still wish you would turn around.'):line[1];
+            if(storyMode==='echoAnchor'||storyMode==='echoRewind')document.getElementById('storyMeta').textContent='PHASE '+echoPlan().stage+' / 3 · RETRY STARTS WITH '+echoAnchor.lives+' / 3 LIVES';
+            if(storyMode==='ending')document.getElementById('storyMeta').textContent='CHAPTER II CLEARED · '+resultLines[0];
+            if(storyMode==='echoEnding')document.getElementById('storyMeta').textContent='CHAPTER III CLEARED · '+echoDeaths+' restarts this journey';
+            if(storyMode==='complete')document.getElementById('storyMeta').textContent='JOURNEY COMPLETE · YOUR RECORDS ARE SAVED';
+            next.hidden=storyMode==='complete';next.textContent=storyActionLabel();
+        }
+        function beginLesson(index){
+            storyMode='tutorial';lesson=index;lessonClock=0;lessonAction=false;lessonSuccess=0;lessonOrb=null;
+            isPlaying=true;paused=false;phase='attack';direction=1;currentTrack=1;targetRadius=130;currentRadius=130;angle=0;
+            dashFrames=0;dashCooldown=0;bulletTime=0;invulnerable=0;beamFlash=0;bossFlash=0;
+            document.getElementById('pause').textContent='Pause P';showDialogue();
+        }
+        function advanceStory(){
+            if(!document.getElementById('recordsScreen').hidden)return;
+            if(storyMode==='finale'){finishFinale();return;}
+            if(storyMode==='title')return;
+            if(storyMode==='tutorial'){if(lesson===3){storyMode='bridge';storyIndex=0;isPlaying=false;showDialogue();}return;}
+            if((storyMode==='ending'||storyMode==='echoRewind'||storyMode==='echoEnding')&&performance.now()<restartAllowedAt)return;
+            if(storyMode==='complete')return;
+            const lines=storyLines[storyMode];if(!lines)return;
+            if(++storyIndex<lines.length){showDialogue();return;}
+            if(storyMode==='intro'){tutorialRoute=[];beginLesson(0);}
+            else if(storyMode==='bridge'){
+                campaignRun.calibrated=true;saveCampaignRun();
+                storyCheckpoint={route:tutorialRoute.slice(-2400)};
+                try{localStorage.setItem('nextSecondCheckpointV1',JSON.stringify(storyCheckpoint));}catch{}
+                echoChapter=false;storyMode='battle';restartAllowedAt=0;startBattle();showDialogue();
+             }else if(storyMode==='ending'){storyMode='echoIntro';storyIndex=0;showDialogue();}
+            else if(storyMode==='echoIntro'){echoDeaths=0;startEchoBlock(0,3);}
+            else if(storyMode==='echoRewind'||storyMode==='echoAnchor'){startEchoBlock(echoBlock);}
+            else if(storyMode==='echoEnding'){beginFinale();}
+        }
+        function startGame(){if(storyMode==='battle'){if(echoChapter)startEchoBlock(echoStageStart());else startBattle();}else advanceStory();}
+        document.getElementById('storyNext').onclick=advanceStory;
+        function restartEchoRun(){if(performance.now()<restartAllowedAt)return;storyMode='echoIntro';startEchoBlock(0,3);}
+        document.getElementById('restartEcho').onclick=restartEchoRun;
+        document.getElementById('resumeStory').onclick=()=>{if(storyCheckpoint){echoChapter=false;tutorialRoute=storyCheckpoint.route.map(p=>({...p}));storyMode='battle';restartAllowedAt=0;startBattle();showDialogue();}};
+        document.getElementById('restartStory').onclick=newJourney;
+        function updateLesson(){
+            if(paused)return;
+            lessonClock++;frameCount++;currentRadius+=(targetRadius-currentRadius)*.25;angle+=.025*direction;
+            if(tutorialRoute.length<2400)tutorialRoute.push({angle,radius:currentRadius});
+            if(dashCooldown>0)dashCooldown--;if(beamFlash>0)beamFlash--;if(bossFlash>0)bossFlash--;
+            if(lessonSuccess>0){if(++lessonSuccess>60){if(lesson<3)beginLesson(lesson+1);}return;}
+            if(lesson===2){document.getElementById('strike').disabled=lessonClock<60;if(lessonAction){lessonSuccess=1;sound('open');}return;}
+            document.getElementById('strike').disabled=true;
+            if(!lessonOrb && lessonClock===45)lessonOrb={angle:angle+1.4,radius:currentRadius,age:0};
+            if(lessonOrb){
+                lessonOrb.age++;if(lessonOrb.age>30)lessonOrb.angle-=.008;
+                const d=Math.hypot(Math.cos(angle)*currentRadius-Math.cos(lessonOrb.angle)*lessonOrb.radius,Math.sin(angle)*currentRadius-Math.sin(lessonOrb.angle)*lessonOrb.radius);
+                const originalDistance=Math.hypot(Math.cos(angle)*dashOrigin-Math.cos(lessonOrb.angle)*lessonOrb.radius,Math.sin(angle)*dashOrigin-Math.sin(lessonOrb.angle)*lessonOrb.radius);
+                if(lessonOrb.age>30&&(d<19 || (lesson===3&&dashFrames>0&&originalDistance<19))){
+                    if(lesson===3&&dashFrames>0){lessonSuccess=1;lessonOrb=null;sound('perfect');document.getElementById('dialogue').textContent='Perfect. That instant opens a counter against projectiles. You are ready for the archive.';document.getElementById('storyNext').textContent=storyActionLabel();}
+                    else {lessonClock=0;lessonOrb=null;lessonAction=false;angle=0;direction=1;document.getElementById('dialogue').textContent='No harm done. Try this step again. '+lessonText[lesson];}
+                }
+                if(lessonOrb&&lessonOrb.age>105){
+                    lessonOrb=null;
+                    if(lesson<2&&lessonAction){lessonSuccess=1;sound('open');document.getElementById('dialogue').textContent=lesson===0?'Good. You can change your mind.':'Good. A different path is always an option.';}
+                    else lessonClock=0;
+                }
+            }
+            if(dashFrames>0)dashFrames--;
+        }
+        function drawStory(){
+            if(storyMode==='title'){drawTitleScene();return;}
+            if(storyMode==='finale'){drawFinale();return;}
+            if(storyMode==='ending'||storyMode==='echoRewind'||storyMode==='echoEnding'){
+                const remaining=Math.max(0,Math.ceil((restartAllowedAt-performance.now())/1000));
+                document.getElementById('storyNext').disabled=remaining>0;
+                document.getElementById('storyNext').textContent=remaining>0?(storyMode==='echoRewind'?'Rewinding · ':'Continue in ')+remaining+'s':storyActionLabel();
+            }
+            ctx.clearRect(0,0,700,700);
+            for(const st of stars){ctx.beginPath();ctx.arc(st.x,st.y,st.size,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,'+st.alpha+')';ctx.fill();}
+            for(const r of tracks){ctx.beginPath();ctx.arc(350,350,r,0,Math.PI*2);ctx.strokeStyle=storyMode==='tutorial'&&r===targetRadius?'rgba(0,243,255,.5)':'rgba(255,255,255,.09)';ctx.lineWidth=r===targetRadius?3:1;ctx.stroke();}
+            if(storyMode==='complete'){
+                drawClockFace(350,185,75,'#9ce9cf',0);ctx.textAlign='center';ctx.fillStyle='#d8f4e8';ctx.font='36px Consolas,monospace';ctx.fillText('01:00',350,300);
+                ctx.fillStyle='#8cbcae';ctx.font='12px Segoe UI';ctx.fillText('RESCUE SIGNAL RECEIVED',350,330);return;
+            }
+            const ending=storyMode==='ending';
+            ctx.fillStyle=ending?'#cc9cff':lesson===2&&lessonClock>=60?'#ffdd88':'#00f3ff';ctx.shadowBlur=25;ctx.shadowColor=ctx.fillStyle;ctx.beginPath();ctx.arc(350,350,24+Math.sin(frameCount*.09)*4,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+            ctx.fillStyle='#010103';ctx.beginPath();ctx.arc(350,350,13,0,Math.PI*2);ctx.fill();
+            ctx.textAlign='center';ctx.fillStyle='#aacbd6';ctx.font='bold 22px Segoe UI';ctx.fillText(storyMode.startsWith('echo')?'CHAPTER III · ZERO HOUR':storyMode==='complete'?'THE NEXT SECOND':ending?'THE ARCHIVE REMEMBERS':storyMode==='tutorial'?'CHAPTER I · CALIBRATION':'THE NEXT SECOND',350,65);
+            if(storyMode==='tutorial'){
+                const x=350+Math.cos(angle)*currentRadius,y=350+Math.sin(angle)*currentRadius;
+                ctx.beginPath();ctx.arc(x,y,10,0,Math.PI*2);ctx.fillStyle='#69edff';ctx.fill();
+                if(lessonOrb){ctx.beginPath();ctx.arc(350+Math.cos(lessonOrb.angle)*lessonOrb.radius,350+Math.sin(lessonOrb.angle)*lessonOrb.radius,9,0,Math.PI*2);ctx.strokeStyle='#ffcc8a';ctx.fillStyle='#ffcc8a';if(lessonOrb.age<=30)ctx.stroke();else ctx.fill();}
+                if(beamFlash>0){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(350,350);ctx.strokeStyle='#ffdf88';ctx.lineWidth=4;ctx.stroke();}
+                ctx.font='18px Segoe UI';ctx.fillStyle='#d9f3ef';ctx.fillText(['SPACE · REVERSE','W / S · CHANGE LANE',lessonClock>=60?'CORE OPEN · E':'WAIT FOR THE CORE','OPTIONAL · PERFECT DODGE'][lesson],350,110);
+                if(lessonSuccess>0){ctx.fillStyle='#8affc5';ctx.fillText('CALIBRATED',350,145);}
+                if(paused){ctx.fillStyle='rgba(0,0,0,.7)';ctx.fillRect(0,0,700,700);ctx.fillStyle='#fff';ctx.fillText('PAUSED · P',350,350);}
+            }else if(ending){
+                ctx.font='12px Segoe UI';ctx.fillStyle='#c3a4d6';ctx.fillText('ARCHIVE INDEX · EVERY ENTRY ENDS AT THE SAME SECOND',350,110);
+                for(let i=0;i<3;i++){
+                    const x=180+i*120;ctx.strokeStyle='#a88ac066';ctx.lineWidth=1;ctx.strokeRect(x,177,100,112);
+                    ctx.font='10px Segoe UI';ctx.fillStyle='#9b86ad';ctx.fillText('ENTRY 0'+(i+1),x+50,205);
+                    ctx.font='22px Consolas,monospace';ctx.fillStyle='#d8b8ef';ctx.fillText('00:59',x+50,248);
+                }
+            }else{ctx.font='15px Segoe UI';ctx.fillStyle='#7f9fab';ctx.fillText(storyMode==='complete'?'01:00':'00:59',350,120);}
+        }
+        const echoResume=document.createElement('button');echoResume.textContent=echoAnchor?'Resume Chapter III':'Preview Chapter III';
+        echoResume.hidden=false;echoResume.onclick=()=>{if(echoAnchor)startEchoBlock(echoAnchor.block);else{isPlaying=false;paused=false;storyMode='echoIntro';storyIndex=0;showDialogue();}};
+        document.querySelector('.helpcontent').appendChild(echoResume);
+        const echoRestart=document.createElement('button');echoRestart.textContent='Restart Echo · 3 lives';echoRestart.onclick=restartEchoRun;
+        document.querySelector('.helpcontent').appendChild(echoRestart);
+        closeRecords();showDialogue();
+        if(window.location?.hash==='#practice'){applyMenuMode('story');document.getElementById('titlePractice').onclick();}
+        if(window.location?.hash==='#inferno'&&infernoUnlocked){if(menuMode!=='inferno')switchMenuMode();}
+
+        let lastTime = null, accumulator = 0;
+        function loop(now) {
+            updateModeTransition(now);
+            if(storyMode==='inferno'){lastTime=null;accumulator=0;infernoEngine?.frame(now);requestAnimationFrame(loop);return;}
+            if (lastTime === null) lastTime = now;
+            accumulator += Math.min((now - lastTime) / 1000, 0.1);
+            lastTime = now;
+            while (accumulator >= 1/60) {
+                update();
+                if (!paused) updateEffects();
+                accumulator -= 1/60;
+            }
+            draw();
+            requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
+    </script>
+<script>
+window.createInferno=function(root,options){
+
+'use strict';
+const $=id=>root.querySelector('[data-inferno="'+id+'"]'),canvas=$('arena'),ctx=canvas.getContext('2d');
+let shown=false;
+const TAU=Math.PI*2,tracks=[85,130,175],playerSize=9,speed=.035;
+const wrap=a=>Math.atan2(Math.sin(a),Math.cos(a)),activeModes=['warning','active','opening','impact','finale'];
+// All times are fixed 60 Hz ticks. Ring gaps rotate with the wall, with a visible
+// lateral offset. A whole-body safe intersection exists at every orbit.
+const sequences=[
+ {name:'LOCK / WEAVE',gap:.55,velocity:.020,turns:[],cuts:[18,186,390],rings:[[105,.20],[285,-.20],[435,.20]],ringGap:.37,ringSpeed:2.5,burstOffset:-.20},
+ {name:'BACKSWING',gap:.52,velocity:-.022,turns:[264],cuts:[18,162,390],rings:[[115,-.24],[300,.24],[435,-.24]],ringGap:.36,ringSpeed:2.7,burstOffset:.24},
+ {name:'CROSS CURRENT',gap:.51,velocity:.022,turns:[234],cuts:[66,240,408],rings:[[30,.22],[180,-.22],[330,.22],[435,-.22]],ringGap:.35,ringSpeed:2.7,burstOffset:.22},
+ {name:'DOUBLE TAKE',gap:.51,velocity:-.023,turns:[282],cuts:[18,126,234,402],rings:[[118,.23],[298,-.23],[435,.23]],ringGap:.35,ringSpeed:2.6,burstOffset:-.23},
+ {name:'NEEDLE TURN',gap:.50,velocity:.023,turns:[210,426],cuts:[18,174,390],rings:[[95,-.23],[245,.23],[435,-.23]],ringGap:.34,ringSpeed:2.7,burstOffset:.23},
+ {name:'ZERO HOUR',gap:.49,velocity:-.024,turns:[216,420],cuts:[54,186,312,438],rings:[[48,.23],[180,-.23],[300,.23],[435,-.23]],ringGap:.34,ringSpeed:2.7,burstOffset:.23}
+];
+const warningLength=72,sequenceLength=540,burstStart=360,burstEnd=388;
+const cutTiming={track:30,lock:24,strike:24};
+let mode='ready',paused=false,round=0,practice=false,angle=0,radius=130,lane=1,direction=1;
+let lives=3,hits=0,hurt=0,elapsed=0,tick=0,activeTicks=0,gapAngle=0,wallVelocity=0;
+let cuts=[],rings=[],opening=0,turnFlash=0,beam=0,counterCooldown=0,burstCount=0,clean=0,roundHits=0,lastCause='';
+let cleared=0,lockUntil=0,lastTime=null,accumulator=0,muted=false,audio=null;
+let finaleLength=138,resultRecorded=false;
+const reducedMotion=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches===true;
+let record={clears:0,furthest:0,bestTime:null,bestHits:null};
+const recordKey='echoInfernoTrialV1';
+try{const saved=JSON.parse(localStorage.getItem(recordKey)||'null');if(saved&&Number.isInteger(saved.clears)&&saved.clears>=0&&Number.isInteger(saved.furthest)&&saved.furthest>=0&&saved.furthest<=6&&(saved.bestTime===null||Number.isFinite(saved.bestTime)&&saved.bestTime>0)&&(saved.bestHits===null||Number.isInteger(saved.bestHits)&&saved.bestHits>=0))record=saved;}catch{}
+const stars=Array.from({length:65},(_,i)=>({x:(i*127+17)%700,y:(i*83+51)%700,r:i%4===0?1.4:.65}));
+const plan=()=>sequences[round],nearestLane=()=>tracks.reduce((best,r,i)=>Math.abs(radius-r)<Math.abs(radius-tracks[best])?i:best,0);
+function enableAudio(){if(muted)return;try{const Audio=window.AudioContext||window.webkitAudioContext;if(!audio&&Audio)audio=new Audio();if(audio?.state==='suspended')audio.resume().catch(()=>{});}catch{}}
+function sound(kind){
+ if(muted||!audio||audio.state!=='running')return;
+ try{const values={reverse:[360,210,.05],hit:[180,45,.22],turn:[700,440,.12],lock:[900,680,.1],open:[440,880,.18],strike:[200,1100,.2],win:[660,1320,.4]};
+ const [from,to,len]=values[kind]||values.reverse,o=audio.createOscillator(),gain=audio.createGain(),at=audio.currentTime;
+ o.type=kind==='hit'?'square':'triangle';o.frequency.setValueAtTime(from,at);o.frequency.exponentialRampToValueAtTime(to,at+len);gain.gain.setValueAtTime(.0001,at);gain.gain.exponentialRampToValueAtTime(kind==='hit'?.15:.08,at+.008);gain.gain.exponentialRampToValueAtTime(.0001,at+len);o.connect(gain);gain.connect(audio.destination);o.start(at);o.stop(at+len+.02);o.onended=()=>{o.disconnect();gain.disconnect();};}catch{}
+}
+function saveRecord(){try{localStorage.setItem(recordKey,JSON.stringify(record));}catch{}}
+function recordText(){return record.clears&&Number.isFinite(record.bestTime)?'Full clears: '+record.clears+' · Best: '+record.bestTime.toFixed(1)+'s · Fewest hits: '+record.bestHits:'Best full run: '+record.furthest+' / 6 sequences cleared';}
+function beginSequence(){
+ mode='warning';tick=0;activeTicks=0;opening=0;roundHits=0;counterCooldown=0;
+ const spec=plan();wallVelocity=spec.velocity;
+ // This preview is reachable from the actual previous endpoint, without teleporting
+ // the player. It activates on a fixed beat, never waits for the player to enter.
+ gapAngle=angle+(speed*direction-wallVelocity)*warningLength;
+ cuts=spec.cuts.map(at=>({at,lane:null,phase:'waiting',age:0}));
+ rings=spec.rings.map(([at,offset],i)=>({at,offset,index:i,radius:300,active:false,passed:false,gap:gapAngle+offset}));
+ $('panel').hidden=true;
+}
+function startTrial(){
+ if(!shown||!options.isUnlocked()||activeModes.includes(mode)||performance.now()<lockUntil)return;
+ const choice=$('runMode').value||'full';practice=choice!=='full'&&/^[0-5]$/.test(choice);round=practice?Number(choice):0;
+ enableAudio();angle=0;radius=130;lane=1;direction=1;lives=3;hits=0;hurt=0;elapsed=0;burstCount=0;clean=0;cleared=0;lastCause='';turnFlash=0;beam=0;paused=false;
+ finaleLength=138;resultRecorded=false;root.dataset.result='';lastTime=null;accumulator=0;$('pause').textContent='Pause · P';beginSequence();
+}
+function reverse(){if(paused||!['warning','active','opening'].includes(mode))return;enableAudio();direction*=-1;turnFlash=18;sound('reverse');}
+function moveLane(delta){if(paused||!['warning','active','opening'].includes(mode))return;lane=Math.max(0,Math.min(2,lane+delta));}
+function blinkLane(index){if(paused||!['warning','active','opening'].includes(mode)||![0,1,2].includes(index))return;lane=index;radius=tracks[index];}
+function setPause(){if(!activeModes.includes(mode))return;paused=!paused;accumulator=0;lastTime=null;$('pause').textContent=paused?'Resume · P':'Pause · P';}
+function burstAvailable(){return mode==='active'&&activeTicks>=burstStart&&activeTicks<burstEnd&&hurt===0&&Math.abs(radius-175)<4&&Math.abs(wrap(angle-gapAngle-plan().burstOffset))<=.11;}
+function counter(){
+ if(paused||counterCooldown>0||!['active','opening'].includes(mode))return;
+ if(mode!=='opening'&&!burstAvailable()){counterCooldown=12;return;}
+ const early=mode==='active';if(early)burstCount++;if(roundHits===0)clean++;cleared++;
+ mode='impact';tick=0;beam=24;cuts=[];rings=[];sound('strike');
+}
+function commitResult(won){
+ if(practice||resultRecorded)return;
+ resultRecorded=true;record.furthest=Math.max(record.furthest,cleared);
+ if(won){record.clears++;record.bestTime=Math.min(record.bestTime??Infinity,elapsed/60);record.bestHits=Math.min(record.bestHits??Infinity,hits);}
+ saveRecord();
+}
+function showResult(won){
+ mode=won?'won':'dead';lockUntil=performance.now()+650;paused=false;
+ root.dataset.result=won?(practice?'practice':'cleared'):'lost';
+ commitResult(won);
+ $('eyebrow').textContent=practice?'FOCUSED PRACTICE · NO FULL-CLEAR RECORD':won?'ALL SIX LIMITERS BROKEN':'ONE MORE ATTEMPT.';
+ $('heading').textContent=won?(practice?'SEQUENCE CLEAR':'INFERNO CLEARED'):'SIGNAL LOST';
+ $('message').textContent=won?(hits===0?'NO-HIT CLEAR':hits+' hits')+' · '+(elapsed/60).toFixed(1)+'s · '+burstCount+' early breaks.\n'+(practice?'This sequence is ready for your next full run.':'You broke through all six sequences.'):'Sequence '+(round+1)+' / 6 · '+plan().name+'\n'+(elapsed/60).toFixed(1)+'s · Last hit: '+lastCause+'.\n'+(practice?'Retry this sequence.':'Restart the full fight with 3 lives.');
+ $('recordHint').textContent=recordText();$('panel').hidden=false;if(won)sound('win');
+}
+function beginInfernoFinale(){
+ // The earned clear survives refresh or a new run while its ceremony is playing.
+ commitResult(true);
+ mode='finale';tick=0;finaleLength=reducedMotion()?24:138;cuts=[];rings=[];beam=0;turnFlash=0;hurt=0;
+ $('panel').hidden=true;
+}
+function takeHit(cause){if(hurt>0||mode!=='active')return;lives--;hits++;roundHits++;hurt=60;lastCause=cause;sound('hit');if(lives<=0)showResult(false);}
+function wallHits(r,a){return Math.abs(wrap(a-gapAngle))+Math.asin(playerSize/r)>plan().gap;}
+function ringHits(ring,r=radius,a=angle){return ring.active&&!ring.passed&&Math.abs(r-ring.radius)<15&&Math.abs(wrap(a-ring.gap))+Math.asin(playerSize/r)>plan().ringGap;}
+function hitCause(r=radius,a=angle){
+ if(mode!=='active')return '';
+ if(wallHits(r,a))return 'rotating wall';
+ if(cuts.some(c=>c.phase==='strike'&&Math.abs(r-tracks[c.lane])<23))return 'locked cut';
+ if(rings.some(ring=>ringHits(ring,r,a)))return 'compression ring';return '';
+}
+function updateHazards(){
+ const spec=plan();
+ if(spec.turns.some(at=>activeTicks===at-60))sound('turn');
+ if(spec.turns.includes(activeTicks)){wallVelocity*=-1;sound('turn');}
+ gapAngle+=wallVelocity;
+ for(const cut of cuts){
+  const age=activeTicks-cut.at;cut.age=age;
+  if(age<0||age>=78){cut.phase='waiting';continue;}
+  if(age<cutTiming.track){cut.phase='tracking';cut.lane=nearestLane();}
+  else if(age<cutTiming.track+cutTiming.lock){if(cut.phase==='tracking'){cut.lane=nearestLane();sound('lock');}cut.phase='locked';}
+  else{if(cut.phase!=='strike')sound('turn');cut.phase='strike';}
+ }
+ for(const ring of rings){ring.gap=gapAngle+ring.offset;if(activeTicks<ring.at||ring.passed)continue;ring.active=true;ring.radius=300-(activeTicks-ring.at+1)*spec.ringSpeed;if(ring.radius<45)ring.passed=true;}
+ if(activeTicks===burstStart)sound('open');
+}
+function step(){
+ if(!shown||!options.isUnlocked()||paused||!activeModes.includes(mode))return;
+ // The victory ceremony is resumable, but never advances the combat clock.
+ if(mode==='finale'){if(++tick>=finaleLength)showResult(true);return;}
+ elapsed++;if(hurt>0)hurt--;if(turnFlash>0)turnFlash--;if(beam>0)beam--;if(counterCooldown>0)counterCooldown--;
+ if(mode==='impact'){if(++tick>=24){if(practice)showResult(true);else if(round===5)beginInfernoFinale();else{round++;beginSequence();}}return;}
+ angle+=speed*direction;radius+=(tracks[lane]-radius)*.25;
+ if(mode==='warning'){gapAngle+=wallVelocity;for(const ring of rings)ring.gap=gapAngle+ring.offset;if(++tick>=warningLength){mode='active';tick=0;sound('turn');}return;}
+ if(mode==='opening'){if(--opening<=0)beginSequence();return;}
+ updateHazards();const cause=hitCause();if(cause)takeHit(cause);if(mode==='dead')return;
+ activeTicks++;
+ if(activeTicks>=sequenceLength){mode='opening';opening=90;cuts=[];rings=[];sound('open');}
+}
+function arc(r,from,to,color,width=1,counterclockwise=false){ctx.beginPath();ctx.arc(350,350,r,from,to,counterclockwise);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke();}
+function text(value,y,size=12,color='#9ab6c3'){ctx.font=size+'px Segoe UI';ctx.fillStyle=color;ctx.textAlign='center';ctx.fillText(value,350,y);}
+function point(a,r){return {x:350+Math.cos(a)*r,y:350+Math.sin(a)*r};}
+function arrow(a,r,dir,color,size=10){const p=point(a,r);ctx.save();ctx.translate(p.x,p.y);ctx.rotate(a+dir*Math.PI/2);ctx.beginPath();ctx.moveTo(size,0);ctx.lineTo(-size*.6,-size*.5);ctx.lineTo(-size*.6,size*.5);ctx.closePath();ctx.fillStyle=color;ctx.fill();ctx.restore();}
+function finaleSpread(still){
+ if(mode!=='finale'&&!(mode==='won'&&!practice))return 0;
+ if(still)return .45;
+ const t=mode==='won'?1:Math.max(0,Math.min(1,(tick-30)/78));
+ return 1-Math.pow(1-t,3);
+}
+function drawClockwork(still){
+ const spread=finaleSpread(still),time=still?0:elapsed/60;
+ ctx.save();
+ // Art stays beyond the furthest attack arrow (247), and out of both HUD bands.
+ ctx.beginPath();ctx.rect(55,120,590,461);ctx.clip();
+ ctx.beginPath();ctx.arc(350,350,302,0,TAU);ctx.arc(350,350,252,0,TAU,true);ctx.clip();
+ for(let i=0;i<12;i++){
+  const a=i*TAU/12+.04,drift=still?0:Math.sin(time*.3+i*1.9)*1.5,r=258+(i%3)*3+drift;
+  const dx=Math.cos(a+.2)*(spread*(11+i%3*5)),dy=Math.sin(a+.2)*(spread*(11+i%3*5));
+  ctx.save();ctx.translate(dx,dy);
+  ctx.beginPath();ctx.arc(350,350,r,a,a+.38);ctx.arc(350,350,r+7,a+.38,a,true);ctx.closePath();
+  ctx.fillStyle='#9d68601c';ctx.fill();ctx.strokeStyle=i%3===0?'#b985744c':'#916a7233';ctx.lineWidth=1;ctx.stroke();
+  arc(r+12,a+.025,a+.29,'#88798124');
+  for(let j=0;j<3;j++){
+   const b=a+.06+j*.105,p=point(b,r-4),q=point(b,r+(j===1?4:0));
+   ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.strokeStyle='#c39b853a';ctx.lineWidth=1;ctx.stroke();
+  }
+  const p=point(a+.4,r+3);ctx.beginPath();ctx.moveTo(p.x-2,p.y);ctx.lineTo(p.x+2,p.y+4);ctx.lineTo(p.x+5,p.y-2);ctx.strokeStyle='#b28b792d';ctx.stroke();ctx.restore();
+ }
+ ctx.restore();
+}
+function drawInfernoCore(still){
+ const ending=mode==='finale'||mode==='won'&&!practice,spread=finaleSpread(still);
+ const gold=mode==='opening'||mode==='impact'||burstAvailable();
+ const recoil=mode==='impact'&&!still?1-.23*Math.sin(Math.PI*(24-beam)/24):1;
+ const progress=Math.min(6,round+1),color=gold?'#ffe3a1':ending?'#e9c9a3':'#9dbbc8';
+ ctx.save();ctx.translate(350,350);ctx.scale(recoil,recoil);
+ // The core remains inside radius 29; the cut countdown at 38 keeps its own space.
+ ctx.beginPath();ctx.arc(0,0,29,0,TAU);ctx.fillStyle=gold?'#ffd99513':'#b96e6410';ctx.fill();
+ for(let i=0;i<6;i++){
+  const a=i*TAU/6-Math.PI/2,mid=a+TAU/12,distance=spread*(17+i%2*6);
+  ctx.save();ctx.translate(Math.cos(mid)*distance,Math.sin(mid)*distance);ctx.rotate(spread*(i%2?-.13:.13));
+  ctx.beginPath();ctx.arc(0,0,27,a+.075,a+TAU/6-.075);ctx.arc(0,0,20,a+TAU/6-.075,a+.075,true);ctx.closePath();
+  ctx.fillStyle=i<progress?'#9c5d5933':'#58768124';ctx.fill();ctx.strokeStyle=color;ctx.lineWidth=1.25;ctx.stroke();
+  if(i<progress){
+   ctx.beginPath();ctx.moveTo(Math.cos(mid)*27,Math.sin(mid)*27);ctx.lineTo(Math.cos(mid+.13)*22,Math.sin(mid+.13)*22);ctx.lineTo(Math.cos(mid-.11)*16,Math.sin(mid-.11)*16);
+   ctx.strokeStyle=gold?'#ffecc0':ending?'#e8c6a2':'#d59e8c';ctx.lineWidth=1;ctx.stroke();
+  }
+  ctx.restore();
+ }
+ const inner=ending?1-spread*.65:1;ctx.globalAlpha=inner;
+ ctx.beginPath();for(let i=0;i<6;i++){const a=i*TAU/6-Math.PI/2;i?ctx.lineTo(Math.cos(a)*11,Math.sin(a)*11):ctx.moveTo(Math.cos(a)*11,Math.sin(a)*11);}ctx.closePath();ctx.fillStyle=gold?'#efca8240':'#c6867a25';ctx.fill();ctx.strokeStyle=gold?'#ffe3a1':'#b58683';ctx.lineWidth=1;ctx.stroke();
+ const hand=still?-Math.PI/3:elapsed*.003-Math.PI/2;ctx.beginPath();ctx.moveTo(0,-17);ctx.lineTo(0,0);ctx.lineTo(Math.cos(hand)*15,Math.sin(hand)*15);ctx.strokeStyle=color;ctx.lineWidth=1.4;ctx.stroke();
+ ctx.beginPath();ctx.arc(0,0,2.3,0,TAU);ctx.fillStyle=gold?'#fff2c5':'#e0b8a1';ctx.fill();ctx.restore();
+}
+function drawInfernoFinale(still){
+ const spread=finaleSpread(still),age=mode==='won'?finaleLength:tick;
+ if(!still&&age>=30&&age<112){
+  const t=(age-30)/82;
+  arc(44+t*167,0,TAU,'rgba(216,179,142,'+((1-t)*.32)+')',1);
+  for(let i=0;i<12;i++){
+   const a=i*TAU/12+.13,r=38+spread*(55+i%3*17),p=point(a,r),q=point(a,r+4);
+   ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.strokeStyle='rgba(210,170,139,'+((1-t)*.5)+')';ctx.lineWidth=1;ctx.stroke();
+  }
+ }
+ if(mode==='finale'){
+  text(age<30&&!still?'THE CLOCK STOPS':'ALL SIX LIMITERS BROKEN',467,12,'#d9c2a8');
+  if(age>=88||still)text('NOTHING HOLDS YOU NOW.',491,10,'#928997');
+ }
+}
+function drawWall(){
+ const spec=plan(),preview=mode==='warning';ctx.save();ctx.beginPath();ctx.arc(350,350,202,gapAngle+spec.gap,gapAngle+TAU-spec.gap);ctx.arc(350,350,58,gapAngle+TAU-spec.gap,gapAngle+spec.gap,true);ctx.closePath();ctx.fillStyle=preview?'#e5b8770c':'#ad46682d';ctx.fill();ctx.strokeStyle=preview?'#dcb58170':'#e5748966';ctx.lineWidth=1;if(preview)ctx.setLineDash([6,8]);ctx.stroke();ctx.setLineDash([]);
+ for(const a of [gapAngle-spec.gap,gapAngle+spec.gap]){const p=point(a,58),q=point(a,202);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.strokeStyle='#9ff5d5';ctx.lineWidth=2;ctx.stroke();}
+ arc(211,gapAngle-spec.gap,gapAngle+spec.gap,'#9ff5d5',3);arrow(gapAngle,227,Math.sign(wallVelocity),'#9ff5d5');
+ const until=spec.turns.find(at=>at>=activeTicks);if(mode==='active'&&until!==undefined&&until-activeTicks<=60){arrow(gapAngle,239,-Math.sign(wallVelocity),'#f6c990',8);arc(236,gapAngle-.22,gapAngle-.22+.44*(1-(until-activeTicks)/60),'#f6c990',2);}
+ ctx.restore();
+}
+function drawRings(){
+ for(const ring of rings){
+  if(ring.passed||!ring.active&&(mode==='warning'||ring.at-activeTicks>48))continue;
+  // Off-arena rings wait at a dashed preview border; live geometry is shown
+  // at its exact radius before it can reach any playable orbit.
+  const preview=!ring.active||ring.radius>232,r=preview?232:ring.radius;ctx.save();if(preview)ctx.setLineDash([5,9]);
+  arc(r,ring.gap+plan().ringGap,ring.gap+TAU-plan().ringGap,preview?'#d3b1df55':'#c6a3e4',preview?3:12);ctx.setLineDash([]);
+  arc(r,ring.gap-plan().ringGap,ring.gap+plan().ringGap,'#acf9e0',3);
+  for(const a of [ring.gap-plan().ringGap,ring.gap+plan().ringGap]){const p=point(a,r-10),q=point(a,r+10);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.strokeStyle='#c3ffed';ctx.lineWidth=2;ctx.stroke();}ctx.restore();
+ }
+}
+function drawCuts(){
+ for(const cut of cuts){if(cut.phase==='waiting')continue;
+  const r=tracks[cut.lane],color=cut.phase==='tracking'?'#e0b781':cut.phase==='locked'?'#ffe49f':'#ff6281';
+  ctx.save();if(cut.phase==='tracking')ctx.setLineDash([6,10]);arc(r,0,TAU,color,cut.phase==='strike'?28:cut.phase==='locked'?4:2);ctx.setLineDash([]);
+  arc(r-14,0,TAU,color+'80',1);arc(r+14,0,TAU,color+'80',1);
+  const progress=cut.phase==='tracking'?cut.age/30:cut.phase==='locked'?(cut.age-30)/24:1;arc(38,-Math.PI/2,-Math.PI/2+TAU*progress,color,3);ctx.restore();
+ }
+}
+function drawBurst(){
+ if(mode!=='active'||activeTicks<burstStart-72||activeTicks>=burstEnd)return;
+ const a=gapAngle+plan().burstOffset,p=point(a,175),ready=activeTicks>=burstStart;
+ ctx.save();if(!ready)ctx.setLineDash([3,4]);ctx.beginPath();ctx.arc(p.x,p.y,15,0,TAU);ctx.strokeStyle=ready?'#ffe6a6':'#e6c89180';ctx.lineWidth=2;ctx.stroke();ctx.setLineDash([]);ctx.fillStyle=ready?'#ffe6a6':'#b9a17b';ctx.font='bold 11px Segoe UI';ctx.textAlign='center';ctx.fillText('E',p.x,p.y+4);ctx.restore();
+}
+function draw(){
+ const still=reducedMotion(),ending=mode==='finale'||mode==='won'&&!practice;
+ ctx.clearRect(0,0,700,700);for(const s of stars){ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,TAU);ctx.fillStyle='#928aab26';ctx.fill();}
+ drawClockwork(still);
+ text('ECHO / INFERNO'+(practice?' · PRACTICE':''),33,12,'#d2b493');text((round+1)+' / 6 · '+plan().name,58,16,'#d8ecef');
+ text('♥'.repeat(Math.max(0,lives))+'♡'.repeat(3-Math.max(0,lives))+'   ·   '+(elapsed/60).toFixed(1)+'s',85,13,hurt>0?'#ff849b':'#99b8c4');
+ for(let i=0;i<6;i++){ctx.fillStyle=ending||i<round?'#d9c393':i===round?'#9ce8d3':'#223842';ctx.fillRect(279+i*24,103,18,3);}
+ tracks.forEach((r,i)=>arc(r,0,TAU,ending?'#badde50b':i===lane?'#579ab14d':'#badde51a',i===lane?2:1));
+ if(['warning','active'].includes(mode)){drawWall();drawRings();drawCuts();drawBurst();}
+ drawInfernoCore(still);
+ if(ending)drawInfernoFinale(still);
+ if(activeModes.includes(mode)&&!ending||mode==='dead'){
+  const p=point(angle,radius);if(hurt===0||hurt%8<4){ctx.beginPath();ctx.arc(p.x,p.y,playerSize,0,TAU);ctx.fillStyle=hurt>0?'#fff':'#6ee9ff';ctx.fill();}
+  if(mode!=='impact'){arc(radius,angle-direction*.25,angle,'#68d5e67a',3,direction<0);arrow(angle+direction*.22,radius,direction,turnFlash>0?'#fff':'#7ae1ef',8);}
+  if(beam>0){ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(350,350);ctx.strokeStyle='#ffeab7';ctx.lineWidth=beam/6;ctx.stroke();}
+ }
+ if(hurt>45){ctx.strokeStyle='#ff628188';ctx.lineWidth=3;ctx.strokeRect(7,7,686,686);}
+ let cue='',detail='',color='#a8d4d7';
+ if(mode==='warning'){cue='READY · '+((warningLength-tick)/60).toFixed(1)+'s';detail='The attack starts on the beat. Follow the mint gap.';color='#e4c39a';}
+ else if(mode==='active'){
+  const cut=cuts.find(c=>c.phase!=='waiting'),turn=plan().turns.find(at=>at>=activeTicks&&at-activeTicks<=60);
+  cue=cut?(cut.phase==='tracking'?'TRACKING':cut.phase==='locked'?'LOCKED · '+((54-cut.age)/60).toFixed(2)+'s':'CUT'):'KEEP THE GAP';color=cut?.phase==='strike'?'#ff8299':cut?.phase==='locked'?'#ffe4a1':'#a8d4d7';
+  if(activeTicks>=burstStart-72&&activeTicks<burstEnd){detail=activeTicks<burstStart?'OUTER MARK · EARLY BREAK IN '+((burstStart-activeTicks)/60).toFixed(1)+'s':burstAvailable()?'BREAK NOW · E':'OUTER MARK · E TO BREAK';}
+  else if(turn!==undefined)detail='GAP REVERSES IN '+((turn-activeTicks)/60).toFixed(1)+'s';
+  else detail=cut?'Amber tracks · Gold locks · Change orbit':'Mint gaps are safe · Purple rings compress';
+ }
+ else if(mode==='opening'){cue='CORE OPEN · E';detail='Counter before '+(opening/60).toFixed(1)+'s';color='#ffe4a1';}
+ else if(mode==='impact'){cue='BREAK THROUGH';detail=practice?'SEQUENCE CLEARED':round===5?'FINAL LIMITER BROKEN':'NEXT SEQUENCE';color='#ffe4a1';}
+ if(activeModes.includes(mode)&&!ending){text(cue,612,20,color);text(detail,637,12,detail.includes('BREAK')?'#ffe4a1':'#8fadb9');text((direction>0?'↻ CLOCKWISE':'↺ COUNTERCLOCKWISE')+' · '+(lane+1)+' / '+['INNER','MID','OUTER'][lane],664,11,'#79bfd0');}
+ if(paused){ctx.fillStyle='#041018d9';ctx.fillRect(0,0,700,700);text('PAUSED',325,26,'#dbf3ed');text('P / ESC TO RESUME',355,12,'#8eb6c4');}
+ const locked=performance.now()<lockUntil;$('start').disabled=locked;
+ if(mode==='dead'||mode==='won')$('start').textContent=locked?'Ready in a moment…':'Try again · R';
+ $('counter').disabled=paused||counterCooldown>0||!(mode==='opening'||burstAvailable());$('pause').disabled=!activeModes.includes(mode);
+}
+function frame(now){
+ if(lastTime===null)lastTime=now;accumulator+=Math.min((now-lastTime)/1000,.1);lastTime=now;
+ while(accumulator>=1/60){step();accumulator-=1/60;}draw();
+}
+$('start').onclick=startTrial;$('reverse').onclick=reverse;canvas.onclick=reverse;$('counter').onclick=counter;$('pause').onclick=setPause;
+root.querySelectorAll('[data-lane]').forEach(button=>button.onclick=()=>blinkLane(Number(button.dataset.lane)));
+$('sound').onclick=()=>{muted=!muted;options.setMuted?.(muted);$('sound').textContent=muted?'Sound: off':'Sound: on';if(!muted){enableAudio();sound('open');}};
+window.addEventListener('keydown',event=>{
+ if(!shown||!options.isUnlocked()||event.target?.tagName==='SELECT')return;
+ const key=event.code;if(!['Space','ArrowUp','ArrowDown','KeyW','KeyS','Digit1','Digit2','Digit3','Numpad1','Numpad2','Numpad3','KeyE','KeyP','Escape','KeyR','Enter'].includes(key))return;
+ if(key==='Enter'&&event.target?.tagName==='BUTTON')return;
+ event.preventDefault();if(event.repeat)return;
+ if(key==='KeyR'||key==='Enter'){startTrial();return;}
+ if(key==='Space')reverse();else if(key==='KeyW'||key==='ArrowUp')moveLane(1);else if(key==='KeyS'||key==='ArrowDown')moveLane(-1);else if(key==='KeyE')counter();else if(key==='KeyP'||key==='Escape')setPause();else blinkLane(Number(key.slice(-1))-1);
+});
+window.addEventListener('blur',()=>{if(shown&&!paused&&activeModes.includes(mode))setPause();});
+document.addEventListener('visibilitychange',()=>{if(shown&&document.hidden&&!paused&&activeModes.includes(mode))setPause();});
+$('recordHint').textContent=recordText();
+$('menu').onclick=()=>options.onMenu();
+return {
+ enter(choice='full',resume=false){
+  if(!options.isUnlocked())return false;
+  shown=true;root.hidden=false;muted=options.getMuted?.()??muted;$('sound').textContent=muted?'Sound: off':'Sound: on';
+  if(resume&&activeModes.includes(mode)){paused=false;lastTime=null;accumulator=0;$('pause').textContent='Pause · P';}
+  else{mode='ready';lockUntil=0;$('runMode').value=choice;startTrial();}
+  canvas.focus?.();return true;
+ },
+ suspend(){shown=false;paused=true;root.hidden=true;lastTime=null;accumulator=0;},
+ hasSession(){return activeModes.includes(mode);},
+ readRecord(){return {...record};},
+ frame(now){if(shown){if(!options.isUnlocked()){this.suspend();options.onMenu();return;}frame(now);}}
+};
+
+};
+</script>
+</body>
+</html>
+
+
+
+
